@@ -57,7 +57,7 @@ int main(int argc, char *argv[]){
 
         char str[1024];
         inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, str, sizeof(str));
-        printf("%s\n",str);
+        printf("Received connection from: %s\n",str);
 
         //wait constantly for client ids to setup
         //on setup, what do we do?

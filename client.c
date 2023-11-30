@@ -33,6 +33,7 @@ void list();
 void text();
 
 const int BUFFER_SZ = 1000;
+const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
 
 int main(){
 
@@ -81,40 +82,30 @@ int main(){
 
             if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) != 0){
                 printf("unable to connect with server\n");
-                // exit(0);
+                continue;
             }
 
-            //write clientID and pwd to server
-
             printf("started packet making\n");
+            struct message *packet = malloc(PACKET_SZ);
+            packet->type = LOGIN; //assign packet type
 
-            struct message *packet = malloc(1000);
-            packet->type = LOGIN;
-            packet->size = sizeof(packet);
-            // packet.source = clientID;
+            for(int i = 0; i < strlen(clientID); i++) packet->source[i] = clientID[i]; //assign packet source
 
-            //convert data into packetc
+            //assign packet data
             char *data = malloc(1000);
             sprintf(data,"%s %s %s %s",clientID,pwd,serverIP,serverPort);
-            
-            for(int j = 0; j < 1000; j++){
-                // printf("%c",data[j]);
-                packet->data[j] = data[j];
-            } 
-            printf("packet data: %s\n",packet->data);
+            for(int j = 0; j < 1000; j++) packet->data[j] = data[j];
 
-            char *packetSend = malloc(1000);
+            packet->size = sizeof(data) * strlen(data); //assign packet data size
+            
+            //compile packet into a buffer to send
+            char *packetSend = malloc(PACKET_SZ);
             sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-            printf("HELLo??\n");
+           
             printf("printing packet to send: %s\n",packetSend);
-            // char* buff = "hello from client";
+            
             write(sockfd,packetSend, strlen(packetSend));
             
-            // char buff2[100];
-            // read(sockfd,buff2,sizeof(buff2));
-            // printf("server said: %s\n",buff2);
-
-
 
         }else if(strcmp(inputSlice,"/logout") == 0){
             printf("logout\n");
