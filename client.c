@@ -43,7 +43,7 @@ void text();
 int main(){
 
     char *inputSlice;
-    int sockfd;
+    int sockfd = -1;
 
     while(1){
         // scanf("%[^\n]s",inputBuf);
@@ -61,6 +61,7 @@ int main(){
 
         }else if(strcmp(inputSlice,"/logout") == 0){
             printf("logout\n");
+            if(sockfd != -1) sockfd = -1;
             
         }else if(strcmp(inputSlice,"/joinsession") == 0){
             printf("join\n");
@@ -95,7 +96,7 @@ int main(){
 
 void login(int sockfd, char *inputSlice){
     
-    //if login, check if already logged in
+    if(sockfd != -1) return; //already connected
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd == -1) {
         printf("socket creation failed\n");
