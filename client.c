@@ -101,14 +101,14 @@ int main(){
                 // printf("%c",data[j]);
                 packet->data[j] = data[j];
             } 
-            printf("packet data: %s",packet->data);
+            printf("packet data: %s\n",packet->data);
 
             char *packetSend = malloc(1000);
             sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
             printf("HELLo??\n");
             printf("printing packet to send: %s\n",packetSend);
-            // char* buff = "hello from client";
-            write(sockfd,packetSend, strlen(packetSend));
+            char* buff = "hello from client";
+            write(sockfd,buff, strlen(buff));
             
             // char buff2[100];
             // read(sockfd,buff2,sizeof(buff2));
