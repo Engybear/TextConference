@@ -101,7 +101,7 @@ int main(){
                 // printf("%c",data[j]);
                 packet->data[j] = data[j];
             } 
-            printf("packet data: %s",packet.data);
+            printf("packet data: %s",packet->data);
 
             char *packetSend = malloc(1000);
             sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
