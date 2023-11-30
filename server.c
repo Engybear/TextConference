@@ -14,6 +14,12 @@
 
 #include "database.h"
 
+//server should wait for connections from the clients in the system
+//hardcode in a database of users
+//database needs to keep track of sessionID, IP address, and client port addresses
+//server will be responsible for connecting clients together in conference rooms and deleting conference rooms
+
+
 
 int main(int argc, char *argv[]){
     if(argc != 2){
@@ -45,7 +51,7 @@ int main(int argc, char *argv[]){
         listen(sockfd,MAX_USERS);
 
         struct sockaddr_storage client;
-        int cli_len = sizeof(client);
+        socklen_t cli_len = sizeof(client);
         int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
         if(connfd < 0) printf("connfd failed\n");
 
@@ -58,6 +64,7 @@ int main(int argc, char *argv[]){
 
 
         read(connfd,buff,sizeof(buff));
+        printf("%s\n",buff);
 
         
 

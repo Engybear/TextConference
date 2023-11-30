@@ -73,7 +73,7 @@ int main(){
             inputSlice = strtok(NULL, "\0");
             serverPort = inputSlice;
 
-            printf("recombining split msg: %s | %s | %s | %s\n",clientID,pwd,serverIP,serverPort);
+            printf("split msg: %s | %s | %s | %s\n",clientID,pwd,serverIP,serverPort);
 
             serv_addr.sin_family = AF_INET;
             serv_addr.sin_addr.s_addr = inet_addr(serverIP); //take input from user
@@ -88,9 +88,9 @@ int main(){
 
             printf("started packet making\n");
 
-            struct message packet;
-            packet.type = LOGIN;
-            packet.size = sizeof(packet);
+            struct message *packet = malloc(1000);
+            packet->type = LOGIN;
+            packet->size = sizeof(packet);
             // packet.source = clientID;
 
             //convert data into packetc
@@ -99,12 +99,14 @@ int main(){
             
             for(int j = 0; j < 1000; j++){
                 // printf("%c",data[j]);
-                packet.data[j] = data[j];
+                packet->data[j] = data[j];
             } 
             printf("packet data: %s",packet.data);
 
             char *packetSend = malloc(1000);
-            sprintf(packetSend, "%d,%d,%s,%s",packet.type, packet.size, packet.source, packet.data);
+            sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
+            printf("HELLo??\n");
+            printf("printing packet to send: %s\n",packetSend);
             // char* buff = "hello from client";
             write(sockfd,packetSend, strlen(packetSend));
             
