@@ -26,7 +26,7 @@
 8. <text> - send text while in a session 
 */
 
-const int BUFFER_SZ = 1024;
+const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
 
 char inputBuf[1000];
