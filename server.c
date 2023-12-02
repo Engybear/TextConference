@@ -20,6 +20,8 @@
 //server will be responsible for connecting clients together in conference rooms and deleting conference rooms
 
 
+const int BUFFER_SZ = 1000;
+const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
 
 int main(int argc, char *argv[]){
     if(argc != 2){
@@ -43,12 +45,12 @@ int main(int argc, char *argv[]){
     }
     
     struct userInfo listOfUsers[100];
-    char buff[1024];
+    char buff[PACKET_SZ];
     const int MAX_USERS = 100;
 
     for(int i = 0; i < MAX_USERS; i++){
 
-        listen(sockfd,MAX_USERS);
+        listen(sockfd,MAX_USERS); //queue max users
 
         struct sockaddr_storage client;
         socklen_t cli_len = sizeof(client);
@@ -59,32 +61,58 @@ int main(int argc, char *argv[]){
         inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, str, sizeof(str));
         printf("Received connection from: %s\n",str);
 
-        //wait constantly for client ids to setup
-        //on setup, what do we do?
-
+        listOfUsers[i].IP = str;
 
         read(connfd,buff,sizeof(buff));
         printf("%s\n",buff);
 
+        char *receiveInfo;
+        receiveInfo = strtok(buff,","); //get packet type
+        int packetType = atoi(receiveInfo);
+
+        receiveInfo = strtok(NULL,","); //get data length
+        int dataLen = atoi(receiveInfo);
+
+        receiveInfo = strtok(NULL,","); //get clientID
+        listOfUsers[i].clientID = receiveInfo;
+
+        if(dataLen != 0){
+            receiveInfo = strtok(NULL,","); //get data
+            listOfUsers[i].pwd = receiveInfo;
+        }
         
+        listOfUsers[i].sessionID = NULL;
+        listOfUsers[i].PORT = -1;
 
-        listOfUsers[i].clientID;
-        listOfUsers[i].pwd;
-        listOfUsers[i].sessionID = -1;
+        switch(packetType){
+            case LOGIN:
+                
+            break;
 
+            case EXIT:
+            break;
+
+            case JOIN:
+            break;
+
+            case LEAVE_SESS:
+            break;
+            
+            case NEW_SESS:
+            break;
+            
+            case MESSAGE:
+            break;
+            
+            case QUERY:
+            break;
+
+        }
         //check against hardcoded database
             //send LO_ACK or LO_NAK
 
     
     }
-
-    // char buff[100];
-    // bzero(buff,100);
-    // read(connfd, buff, sizeof(buff));
-    // printf("client said: %s",buff);
-
-    // char* buff2 = "hello from server";
-    // write(connfd, buff2, strlen(buff2));
 
 
     

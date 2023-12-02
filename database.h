@@ -27,9 +27,8 @@ struct message{
 struct userInfo{
     char *clientID;
     char *pwd;
-    int sessionID;
+    char *sessionID;
 
-    //how do we get these??
     char *IP;
     int PORT;
 };
