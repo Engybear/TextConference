@@ -32,7 +32,7 @@ const int MAX_USERS = 100;
 
 int main(int argc, char *argv[]){
     struct userChecks acceptedUsers[MAX_USERS];
-    acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "name pwd 127.0.0.1 1234";
+    acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "pwd";
     acceptedUsers[1].id = "Bob"; acceptedUsers[1].pwd = "bob123";
 
 
@@ -60,10 +60,8 @@ int main(int argc, char *argv[]){
     char buff[PACKET_SZ];
 
     for(int i = 0; i < MAX_USERS; i++){
-        printf("dun dunn dunnnnnn\n");
 
         int check = listen(sockfd,MAX_USERS); //queue max users
-        if(check == 0) printf("successful listen\n");
 
         struct sockaddr_storage client;
         socklen_t cli_len = sizeof(client);
@@ -102,7 +100,7 @@ int main(int argc, char *argv[]){
             case LOGIN:
                 //check password correct
                 
-                for(int j = 0; j < MAX_USERS; j++){
+                for(int j = 0; j < 2; j++){
                     if(strcmp(acceptedUsers[j].id,listOfUsers[i].clientID) == 0 && strcmp(acceptedUsers[j].pwd,listOfUsers[i].pwd) == 0){
                         accepted = 1;
                         break;
@@ -116,24 +114,37 @@ int main(int argc, char *argv[]){
                     packet->type = LO_ACK;
                     packet->size = 0;
                     packet->data[0] = 0;
-                    printf("help?\n");
                     for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[i].clientID[j];
 
-                    printf("checkpoint\n");
-                    // send message as one contiguous string
                     char *packetSend = malloc(PACKET_SZ);
                     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
                     printf("printing packet to send: %s\n",packetSend);
-
-                    // send request to join session to server
+    
                     write(connfd,packetSend, strlen(packetSend));
 
-                    // write(); 
                     free(packet);
                     free(packetSend);        
                 }
                 else {
-                    printf("get out of here\n");
+                    printf("invalid login\n");
+
+                    struct message *packet = malloc(PACKET_SZ);
+                    packet->type = LO_NAK;
+
+                    char *reason = "Wrong Password";
+                    packet->size = strlen(reason);
+
+                    for(int j = 0; j < strlen(reason); j++) packet->data[j] = reason[j];
+                    for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[i].clientID[j];
+
+                    char *packetSend = malloc(PACKET_SZ);
+                    sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
+                    printf("printing packet to send: %s\n",packetSend);
+
+                    write(connfd,packetSend, strlen(packetSend));
+
+                    free(packet);
+                    free(packetSend);        
                 }
             break;
 
