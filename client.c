@@ -153,7 +153,7 @@ void login(int sockfd, char *inputSlice){
 
     //assign packet data
     char *data = malloc(1000);
-    sprintf(data,"%s %s %s %s",ID,pwd,serverIP,serverPort);
+    data = pwd;
     for(int j = 0; j < 1000; j++) packet->data[j] = data[j];
 
     packet->size = strlen(data); //assign packet data length
