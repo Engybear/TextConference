@@ -27,7 +27,7 @@
 */
 
 const int BUFFER_SZ = 1000;
-const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
+const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000
 
 char inputBuf[1000];
 
@@ -54,12 +54,15 @@ int main(){
 
     char *inputSlice;
     int sockfd = -1;
+    client = malloc(sizeof(struct clientInfo));
+    client->clientID = malloc(1000);
+    client->sessionID = malloc(1000);
 
     while(1){
         // scanf("%[^\n]s",inputBuf);
+        bzero(inputBuf, BUFFER_SZ - 1);
         fgets(inputBuf, BUFFER_SZ - 1, stdin);
         inputBuf[strlen(inputBuf) - 1] = '\0'; //set end of inputBuf to null instead of \n    
-        client = malloc(sizeof(struct clientInfo));
         inputSlice = inputBuf;
         if(*inputSlice == '\0') continue;
         
@@ -124,7 +127,7 @@ void login(int sockfd, char *inputSlice){
 
     char *ID, *pwd, *serverIP, *serverPort;
     inputSlice = strtok(NULL, " ");
-    ID = inputSlice;
+    ID = strdup(inputSlice);
     // save id into global variable
     client->clientID = ID;
     inputSlice = strtok(NULL, " ");
@@ -169,8 +172,8 @@ void login(int sockfd, char *inputSlice){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
 
-    read(sockfd, buff, sizeof(buff));
-    // parse the buffer message from the server
+    //read(sockfd, buff, sizeof(buff));
+    return;
 }
 
 void joinSess(int sockfd, char *inputSlice){
@@ -197,7 +200,7 @@ void joinSess(int sockfd, char *inputSlice){
     write(sockfd,packetSend, strlen(packetSend));
 
     // wait for ACK / NACK
-    read(sockfd, buff, sizeof(buff));
+    //read(sockfd, buff, sizeof(buff));
     return;
 }
 
@@ -205,7 +208,7 @@ void createSess(int sockfd, char *inputSlice){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     // extract the session ID from the user (doesnt have to be a number)
-    char *sessionID;
+    char *sessionID = malloc(1000);
     struct message *packet = malloc(PACKET_SZ);
     inputSlice = strtok(NULL, " ");
     sessionID = inputSlice;
@@ -214,7 +217,7 @@ void createSess(int sockfd, char *inputSlice){
     packet->type = NEW_SESS;
     packet->size = strlen(sessionID);
     for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
-    for(int i = 0; i < strlen(sessionID); i++) packet->data[i] = sessionID[i];
+    for(int i = 0; i < strlen(client->sessionID); i++) packet->data[i] = sessionID[i];
 
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
@@ -226,7 +229,7 @@ void createSess(int sockfd, char *inputSlice){
 
     // wait for ACK/NACK
     read(sockfd, buff, sizeof(buff));
-    // parse the buffer message from the server
+    printf("%s", buff);
 
     return;
 }
@@ -247,9 +250,9 @@ void leaveSess(int sockfd){
 
     // send request to create the session to the server
     write(sockfd,packetSend, strlen(packetSend));
-
+    printf("made it to end");
     // wait for ACK/NACK
-    read(sockfd, buff, sizeof(buff));
+    //read(sockfd, buff, sizeof(buff));
     // parse the buffer message from the server
 
     return;
