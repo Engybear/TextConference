@@ -26,7 +26,7 @@ struct userChecks{
 
 
 const int BUFFER_SZ = 1000;
-const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
+const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000 + 3
 const int MAX_USERS = 100;
 
 
@@ -60,8 +60,10 @@ int main(int argc, char *argv[]){
     char buff[PACKET_SZ];
 
     for(int i = 0; i < MAX_USERS; i++){
+        printf("dun dunn dunnnnnn\n");
 
-        listen(sockfd,MAX_USERS); //queue max users
+        int check = listen(sockfd,MAX_USERS); //queue max users
+        if(check == 0) printf("successful listen\n");
 
         struct sockaddr_storage client;
         socklen_t cli_len = sizeof(client);
@@ -110,9 +112,25 @@ int main(int argc, char *argv[]){
                     printf("successful login!\n");
                     //send LO_ACK
 
+                    struct message *packet = malloc(PACKET_SZ);
+                    packet->type = LO_ACK;
+                    packet->size = 0;
+                    packet->data[0] = 0;
+                    printf("help?\n");
+                    for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[i].clientID[j];
 
-                    struct message packet;
-                    // write();         
+                    printf("checkpoint\n");
+                    // send message as one contiguous string
+                    char *packetSend = malloc(PACKET_SZ);
+                    sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
+                    printf("printing packet to send: %s\n",packetSend);
+
+                    // send request to join session to server
+                    write(connfd,packetSend, strlen(packetSend));
+
+                    // write(); 
+                    free(packet);
+                    free(packetSend);        
                 }
                 else {
                     printf("get out of here\n");
