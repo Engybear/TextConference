@@ -26,7 +26,7 @@
 8. <text> - send text while in a session 
 */
 
-const int BUFFER_SZ = 1024;
+const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
 
 char inputBuf[1000];
@@ -153,7 +153,7 @@ void login(int sockfd, char *inputSlice){
 
     //assign packet data
     char *data = malloc(1000);
-    sprintf(data,"%s %s %s %s",ID,pwd,serverIP,serverPort);
+    data = pwd;
     for(int j = 0; j < 1000; j++) packet->data[j] = data[j];
 
     packet->size = strlen(data); //assign packet data length
