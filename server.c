@@ -29,12 +29,12 @@ const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000 + 3
 const int MAX_USERS = 100;
 
+int availalbeClientNums[100] = {0}; //0 means available, 1 means taken
 
 int main(int argc, char *argv[]){
     struct userChecks acceptedUsers[MAX_USERS];
     acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "pwd";
     acceptedUsers[1].id = "Bob"; acceptedUsers[1].pwd = "bob123";
-
 
     if(argc != 2){
         fprintf(stderr,"usage: server port needed\n");
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
     struct userInfo listOfUsers[100];
     char buff[PACKET_SZ];
 
-    for(int i = 0; i < MAX_USERS; i++){
+    while(1){
 
         int check = listen(sockfd,MAX_USERS); //queue max users
 
@@ -68,11 +68,14 @@ int main(int argc, char *argv[]){
         int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
         if(connfd < 0) printf("connfd failed\n");
 
-        char str[1024];
-        inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, str, sizeof(str));
-        printf("Received connection from: %s\n",str);
-
-        listOfUsers[i].IP = str;
+        char ip_address[1024];
+        inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
+        printf("Received connection from: %s\n",ip_address);
+        
+        int availableNum = 0;
+        for(; availableNum < MAX_USERS; availableNum++) if(availalbeClientNums[availableNum] == 0) break; //get us to an available client number in database
+        
+        listOfUsers[availableNum].IP = ip_address;
 
         read(connfd,buff,sizeof(buff));
         printf("%s\n",buff);
@@ -85,23 +88,38 @@ int main(int argc, char *argv[]){
         int dataLen = atoi(receiveInfo);
 
         receiveInfo = strtok(NULL,","); //get clientID
-        listOfUsers[i].clientID = receiveInfo;
-
-        if(dataLen != 0){
-            receiveInfo = strtok(NULL,","); //get data
-            listOfUsers[i].pwd = receiveInfo;
+        //need to check if client id is already in database
+        int clientExists = 0;
+        int existingNum = 0;
+        for(; existingNum < availableNum; existingNum++){ //
+            if(strcmp(listOfUsers[existingNum].clientID,receiveInfo) == 0){
+                clientExists = 1;
+                break;
+            }
         }
-        
-        listOfUsers[i].sessionID = NULL;
-        listOfUsers[i].PORT = -1;
+        if(clientExists) {//reset available num to existing num location, to use already existing client number
+            availableNum = existingNum; 
+            printf("client already exists!\n");
+        }
+        else { //if it doesn't exist, use that available num location and treat as new client
+            printf("new client!\n");
+            availalbeClientNums[availableNum] = 1;
+            listOfUsers->clientID = receiveInfo;
+            listOfUsers[availableNum].sessionID = NULL;    
+            listOfUsers[availableNum].PORT = -1; 
+        }
 
         int accepted = 0;
         switch(packetType){
             case LOGIN:
                 //check password correct
                 
+                receiveInfo = strtok(NULL,","); //get pwd
+                listOfUsers[availableNum].pwd = receiveInfo;
+            
                 for(int j = 0; j < 2; j++){
-                    if(strcmp(acceptedUsers[j].id,listOfUsers[i].clientID) == 0 && strcmp(acceptedUsers[j].pwd,listOfUsers[i].pwd) == 0){
+                    if(strcmp(acceptedUsers[j].id,listOfUsers[availableNum].clientID) == 0
+                     && strcmp(acceptedUsers[j].pwd,listOfUsers[availableNum].pwd) == 0){
                         accepted = 1;
                         break;
                     }
@@ -114,7 +132,7 @@ int main(int argc, char *argv[]){
                     packet->type = LO_ACK;
                     packet->size = 0;
                     packet->data[0] = 0;
-                    for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[i].clientID[j];
+                    for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[availableNum].clientID[j];
 
                     char *packetSend = malloc(PACKET_SZ);
                     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
@@ -135,7 +153,7 @@ int main(int argc, char *argv[]){
                     packet->size = strlen(reason);
 
                     for(int j = 0; j < strlen(reason); j++) packet->data[j] = reason[j];
-                    for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[i].clientID[j];
+                    for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[availableNum].clientID[j];
 
                     char *packetSend = malloc(PACKET_SZ);
                     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
@@ -152,12 +170,19 @@ int main(int argc, char *argv[]){
             break;
 
             case JOIN:
+                //join session id
+                //check if client is already in a session
+                //check if session id is valid 
+
+
             break;
 
             case LEAVE_SESS:
             break;
             
             case NEW_SESS:
+                //new sesssion
+                // for()
             break;
             
             case MESSAGE:
