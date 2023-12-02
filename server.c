@@ -19,11 +19,23 @@
 //database needs to keep track of sessionID, IP address, and client port addresses
 //server will be responsible for connecting clients together in conference rooms and deleting conference rooms
 
+struct userChecks{
+    char *id;
+    char *pwd;
+};
+
 
 const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2008; // 4 + 4 + 1000 + 1000
+const int MAX_USERS = 100;
+
 
 int main(int argc, char *argv[]){
+    struct userChecks acceptedUsers[MAX_USERS];
+    acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "name pwd 127.0.0.1 1234";
+    acceptedUsers[1].id = "Bob"; acceptedUsers[1].pwd = "bob123";
+
+
     if(argc != 2){
         fprintf(stderr,"usage: server port needed\n");
 		exit(1);
@@ -46,7 +58,6 @@ int main(int argc, char *argv[]){
     
     struct userInfo listOfUsers[100];
     char buff[PACKET_SZ];
-    const int MAX_USERS = 100;
 
     for(int i = 0; i < MAX_USERS; i++){
 
@@ -84,9 +95,28 @@ int main(int argc, char *argv[]){
         listOfUsers[i].sessionID = NULL;
         listOfUsers[i].PORT = -1;
 
+        int accepted = 0;
         switch(packetType){
             case LOGIN:
+                //check password correct
                 
+                for(int j = 0; j < MAX_USERS; j++){
+                    if(strcmp(acceptedUsers[j].id,listOfUsers[i].clientID) == 0 && strcmp(acceptedUsers[j].pwd,listOfUsers[i].pwd) == 0){
+                        accepted = 1;
+                        break;
+                    }
+                }
+                if(accepted == 1){
+                    printf("successful login!\n");
+                    //send LO_ACK
+
+
+                    struct message packet;
+                    // write();         
+                }
+                else {
+                    printf("get out of here\n");
+                }
             break;
 
             case EXIT:
