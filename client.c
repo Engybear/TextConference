@@ -220,7 +220,8 @@ void joinSess(char *inputSlice){
     read(client->sockfd, buff, sizeof(buff));
     inputSlice = strtok(buff, ",");
     if(atoi(inputSlice) == JN_NAK){
-        printf("Joining new session was unsuccessful\n");
+        inputSlice = strtok(buff, ",");
+        printf("Joining new session was unsuccessful: %s\n", inputSlice);
     }
     else if(atoi(inputSlice) == JN_ACK){
         printf("Joining new session was successful\n");
