@@ -149,6 +149,7 @@ void login(char *inputSlice){
 
     if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
         printf("unable to connect with server\n");
+        client->sockfd = -1;
         return;
     }
     struct message *packet = malloc(PACKET_SZ);

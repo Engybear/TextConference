@@ -101,6 +101,7 @@ void *clientHandler(void *args){
         int sessionFail = 0;
         int session = 0;
         char queryMsg[BUFFER_SZ];
+        printf("starting switch case\n");
         switch(packetType){
             case LOGIN:
                 //check password correct
@@ -176,6 +177,11 @@ void *clientHandler(void *args){
                 //check if client is already in a session
                 //check if session id is valid 
                 printf("Joining session...\n");
+                
+                if(listOfUsers[availableNum].sessionID != NULL){
+                    write(connfd, "6,Already in session",20);
+                    break; 
+                }
 
                 sessionFail = 1;
                 receiveInfo = strtok(NULL,",");
@@ -225,18 +231,26 @@ void *clientHandler(void *args){
             case NEW_SESS:
                 //new sesssion
                 // for()
-                //printf("Creating new session...\n");
+                printf("Creating new session...\n");
+                
+                if(listOfUsers[availableNum].sessionID != NULL){
+                    write(connfd, "-1,",4);
+                    break; 
+                }
+                
+                receiveInfo = strtok(NULL,",");
 
                 
                 for(; session < 100; session++){
                     if(listOfSessions[session].sessionID == NULL) break;
-                    if((strcmp(listOfSessions[session].sessionID,listOfUsers[availableNum].sessionID) == 0)) {//session ID already exists
+                    if((strcmp(listOfSessions[session].sessionID,receiveInfo) == 0)) {//session ID already exists
                         sessionFail = 1;
+                        break;
                     }
                 }
                 if(!sessionFail){ //session creation is good
+                    printf("session %d, availableNum %d\n",session, availableNum);
                 
-                    receiveInfo = strtok(NULL,",");
                     listOfSessions[session].sessionID = malloc(strlen(receiveInfo) + 1);
                     strcpy(listOfSessions[session].sessionID, receiveInfo);
 
@@ -265,7 +279,7 @@ void *clientHandler(void *args){
                 bzero(queryMsg,BUFFER_SZ);
                 for(int i = 0; i < 100; i++){
                     
-                    if(availalbeClientNums[i] == 0) continue; //occupied
+                    if(availalbeClientNums[i] == 0) continue; //available for use, we skip
                     strcat(queryMsg,listOfUsers[i].clientID);
                     strcat(queryMsg, " | ");
                     if(listOfUsers[i].sessionID == NULL) strcat(queryMsg, "N/A");
