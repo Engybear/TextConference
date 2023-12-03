@@ -50,7 +50,6 @@ void *clientHandler(void *args){
     printf("start of thread connfd: %d\n",connfd);
 
     while(1){
-        printf("start of loop\n");
         char buff[PACKET_SZ];
         bzero(buff, PACKET_SZ);
 

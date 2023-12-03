@@ -15,10 +15,10 @@ DELIVER_EXEC = client
 all: $(SERVER_EXEC) $(DELIVER_EXEC)
 
 $(SERVER_EXEC): $(SERVER_SRC)
-	$(CC) -o $@ $<
+	$(CC) -o $@ $< -pthread
 
 $(DELIVER_EXEC): $(DELIVER_SRC)
-	$(CC) -o $@ $<
+	$(CC) -o $@ $< -pthread
 
 clean:
 	rm -f $(SERVER_EXEC) $(DELIVER_EXEC)
