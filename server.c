@@ -59,14 +59,19 @@ int main(int argc, char *argv[]){
     struct userInfo listOfUsers[100];
     char buff[PACKET_SZ];
 
-    while(1){
+    listen(sockfd,MAX_USERS); //queue max users
 
-        int check = listen(sockfd,MAX_USERS); //queue max users
+    while(1){
+        printf("Start of loop\n");
+        bzero(buff, PACKET_SZ);
 
         struct sockaddr_storage client;
         socklen_t cli_len = sizeof(client);
+
+
         int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
         if(connfd < 0) printf("connfd failed\n");
+        printf("connect checks out\n");
 
         char ip_address[1024];
         inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
@@ -183,6 +188,7 @@ int main(int argc, char *argv[]){
             case NEW_SESS:
                 //new sesssion
                 // for()
+                printf("new session wanted\n");
             break;
             
             case MESSAGE:
@@ -192,8 +198,8 @@ int main(int argc, char *argv[]){
             break;
 
         }
-        //check against hardcoded database
-            //send LO_ACK or LO_NAK
+        printf("get to close\n");
+        close(sockfd);
 
     
     }

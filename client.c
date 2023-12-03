@@ -32,31 +32,36 @@ const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000
 char inputBuf[1000];
 
 struct clientInfo{
-    char *clientID;
-    char *sessionID;
-    int sockfd;
+    char *clientID; //1000
+    char *sessionID; //1000
+    int sockfd; //4
+    struct sockaddr_in serv_addr;
+    
 };
 
 struct clientInfo *client;
 
-void login(int sockfd, char *inputSlice);
-void logout(int sockfd);
-void joinSess(int sockfd, char *inputSlice);
-void leaveSess(int sockfd);
-void createSess(int sockfd, char *inputSlice);
-void list(int sockfd);
-void quit(int sockfd);
+void login(char *inputSlice);
+void logout();
+void joinSess(char *inputSlice);
+void leaveSess();
+void createSess(char *inputSlice);
+void list();
+void quit();
 void text();
 
-
+const int clientInfoSZ = 2004;
 
 int main(){
 
     char *inputSlice;
-    int sockfd = -1;
-    client = malloc(sizeof(struct clientInfo));
-    client->clientID = malloc(1000);
-    client->sessionID = malloc(1000);
+    
+    client = malloc(clientInfoSZ + sizeof(client->serv_addr));
+    // client->clientID = malloc(1000);
+    // client->sessionID = malloc(1000);
+    client->sockfd = -1;
+    bzero(&client->serv_addr, sizeof(client->serv_addr));
+
 
     while(1){
         // scanf("%[^\n]s",inputBuf);
@@ -70,31 +75,31 @@ int main(){
 
         if(strcmp(inputSlice, "/login") == 0){
             printf("login cmd\n");
-            login(sockfd, inputSlice);
+            login(inputSlice);
 
         }else if(strcmp(inputSlice,"/logout") == 0){
             printf("logout\n");
-            if(sockfd != -1) sockfd = -1;
+            if(client->sockfd != -1) client->sockfd = -1;
             
         }else if(strcmp(inputSlice,"/joinsession") == 0){
             printf("join\n");
-            joinSess(sockfd, inputSlice);
+            joinSess(inputSlice);
             
         }else if(strcmp(inputSlice,"/leavesession") == 0){
             printf("leave\n");
-            leaveSess(sockfd);
+            leaveSess();
             
         }else if(strcmp(inputSlice,"/createsession") == 0){
             printf("create\n");
-            createSess(sockfd, inputSlice);
+            createSess(inputSlice);
             
         }else if(strcmp(inputSlice,"/list") == 0){
             printf("list\n");
-            list(sockfd);
+            list();
             
         }else if(strcmp(inputSlice,"/quit") == 0){
             printf("quit\n");
-            quit(sockfd);
+            quit();
 
             break;
             
@@ -112,17 +117,16 @@ int main(){
 }
 
 
-void login(int sockfd, char *inputSlice){
+void login(char *inputSlice){
     
-    if(sockfd != -1) return; //already connected
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(sockfd == -1) {
+    if(client->sockfd != -1) return; //already connected
+    client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    printf("sockfd at start: %d\n",client->sockfd);
+    if(client->sockfd == -1) {
         printf("socket creation failed\n");
         exit(0);
     }
-    struct sockaddr_in serv_addr;
-    bzero(&serv_addr, sizeof(serv_addr));
-
+    
     //put client into database for the server
 
     char *ID, *pwd, *serverIP, *serverPort;
@@ -139,11 +143,11 @@ void login(int sockfd, char *inputSlice){
 
     printf("split msg: %s | %s | %s | %s\n",ID,pwd,serverIP,serverPort);
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr(serverIP); //take input from user
-    serv_addr.sin_port = htons(atoi(serverPort)); //take input from user
+    client->serv_addr.sin_family = AF_INET;
+    client->serv_addr.sin_addr.s_addr = inet_addr(serverIP); //take input from user
+    client->serv_addr.sin_port = htons(atoi(serverPort)); //take input from user
 
-    if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) != 0){
+    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
         printf("unable to connect with server\n");
         return;
     }
@@ -167,16 +171,19 @@ void login(int sockfd, char *inputSlice){
 
     printf("printing packet to send: %s\n",packetSend);
     
-    write(sockfd,packetSend, strlen(packetSend));
+    write(client->sockfd,packetSend, strlen(packetSend));
 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
 
-    //read(sockfd, buff, sizeof(buff));
+    read(client->sockfd, buff, sizeof(buff));
+    printf("Login acknowledgement: %s\n",buff);
     return;
+    
+    close(client->sockfd);
 }
 
-void joinSess(int sockfd, char *inputSlice){
+void joinSess(char *inputSlice){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     // extract the session ID from the user (doesnt have to be a number)
@@ -197,14 +204,18 @@ void joinSess(int sockfd, char *inputSlice){
     printf("printing packet to send: %s\n",packetSend);
 
     // send request to join session to server
-    write(sockfd,packetSend, strlen(packetSend));
+    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
+        printf("unable to connect with server\n");
+        return;
+    }
+    write(client->sockfd,packetSend, strlen(packetSend));
 
     // wait for ACK / NACK
     //read(sockfd, buff, sizeof(buff));
     return;
 }
 
-void createSess(int sockfd, char *inputSlice){
+void createSess(char *inputSlice){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     // extract the session ID from the user (doesnt have to be a number)
@@ -225,16 +236,21 @@ void createSess(int sockfd, char *inputSlice){
     printf("printing packet to send: %s\n",packetSend);
     
     // send request to create the session to the server
-    write(sockfd,packetSend, strlen(packetSend));
-
+    printf("NULL? %d\n",client->sockfd);
+    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
+        printf("unable to connect with server\n");
+        return;
+    }
+    int check = write(client->sockfd,packetSend, strlen(packetSend));
+    printf("bytes written: %d\n",check);
     // wait for ACK/NACK
-    read(sockfd, buff, sizeof(buff));
-    printf("%s", buff);
+    // read(client->sockfd, buff, sizeof(buff));
+    // printf("%s", buff);
 
     return;
 }
 
-void leaveSess(int sockfd){
+void leaveSess(){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -249,7 +265,11 @@ void leaveSess(int sockfd){
     printf("printing packet to send: %s\n",packetSend);
 
     // send request to create the session to the server
-    write(sockfd,packetSend, strlen(packetSend));
+    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
+        printf("unable to connect with server\n");
+        return;
+    }
+    write(client->sockfd,packetSend, strlen(packetSend));
     printf("made it to end");
     // wait for ACK/NACK
     //read(sockfd, buff, sizeof(buff));
@@ -258,7 +278,7 @@ void leaveSess(int sockfd){
     return;
 }
 
-void list(int sockfd){
+void list(){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -273,16 +293,16 @@ void list(int sockfd){
     printf("printing packet to send: %s\n",packetSend);
 
     // send request to create the session to the server
-    write(sockfd,packetSend, strlen(packetSend));
+    write(client->sockfd,packetSend, strlen(packetSend));
 
     // wait for ACK/NACK
-    read(sockfd, buff, sizeof(buff));
+    read(client->sockfd, buff, sizeof(buff));
     // parse the buffer message from the server
 
     return;
 }
 
-void quit(int sockfd){
+void quit(){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -297,15 +317,15 @@ void quit(int sockfd){
     printf("printing packet to send: %s\n",packetSend);
 
     // send quit request
-    write(sockfd,packetSend, strlen(packetSend));
+    write(client->sockfd,packetSend, strlen(packetSend));
 
     // wait for ack?
-    read(sockfd, buff, sizeof(buff));
+    read(client->sockfd, buff, sizeof(buff));
     // parse the buffer message from the server
     return;
 }
 
-void logout(int sockfd){
+void logout(){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -320,10 +340,10 @@ void logout(int sockfd){
     printf("printing packet to send: %s\n",packetSend);
 
     // send quit request
-    write(sockfd,packetSend, strlen(packetSend));
+    write(client->sockfd,packetSend, strlen(packetSend));
 
     // wait for ack?
-    read(sockfd, buff, sizeof(buff));
+    read(client->sockfd, buff, sizeof(buff));
     // parse the buffer message from the server
     return;
 }
