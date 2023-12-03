@@ -38,6 +38,8 @@ const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000 + 3
 const int MAX_USERS = 100;
 
+struct sessionInfo listOfSessions[100];
+
 struct userInfo listOfUsers[100];
 struct userChecks acceptedUsers[100];
 int availalbeClientNums[100] = {0}; //0 means available, 1 means taken
@@ -91,11 +93,14 @@ void *clientHandler(void *args){
             listOfUsers[availableNum].clientID = malloc(strlen(receiveInfo) + 1);
             strcpy(listOfUsers[availableNum].clientID,receiveInfo);
             listOfUsers[availableNum].sessionID = NULL;    
-            listOfUsers[availableNum].PORT = -1; 
+            // listOfUsers[availableNum].PORT = -1; 
             listOfUsers[availableNum].loggedIn = 0;
         }
 
-        int accepted = 0;
+        int loginAccept = 0;
+        int sessionFail = 0;
+        int session = 0;
+        char queryMsg[BUFFER_SZ];
         switch(packetType){
             case LOGIN:
                 //check password correct
@@ -113,11 +118,12 @@ void *clientHandler(void *args){
 
                         // printf("comparing %s to ",acceptedUsers[j].pwd);
                         // printf("%s\n",listOfUsers[availableNum].pwd);
-                        accepted = 1;
+                        loginAccept = 1;
                         break;
                     }
                 }
-                if(accepted == 1 && listOfUsers[availableNum].loggedIn == 0){
+                struct message * packet;
+                if(loginAccept == 1 && listOfUsers[availableNum].loggedIn == 0){
                     printf("successful login!\n");
                     //send LO_ACK
                     listOfUsers[availableNum].loggedIn = 1;
@@ -170,22 +176,93 @@ void *clientHandler(void *args){
                 //check if client is already in a session
                 //check if session id is valid 
                 printf("Joining session...\n");
+
+                sessionFail = 1;
+                receiveInfo = strtok(NULL,",");
+                for(; session < 100; session++){
+                    if(listOfSessions[session].sessionID == NULL) continue;
+                    if(strcmp(listOfSessions[session].sessionID,receiveInfo) == 0) {
+                        sessionFail = 0;
+                        break;
+                    }
+                }
+                if(!sessionFail){ //we have match
+                    listOfUsers[availableNum].sessionID = malloc(strlen(receiveInfo) + 1);
+                    strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
+
+                    listOfSessions[availableNum].numClients++;
+                }
+
+
             break;
 
             case LEAVE_SESS:
                 printf("Leaving session...\n");
+                if(listOfUsers[availableNum].sessionID == NULL){
+                    printf("You are not in a session\n");
+                    //fails
+                    break;
+                }
+
+                for(; session < 100; session++){
+                    if(strcmp(listOfSessions[session].sessionID,listOfUsers[availableNum].sessionID) == 0) break;
+                }
+                listOfSessions[session].numClients--;
+                if(listOfSessions[session].numClients == 0){
+                    free(listOfSessions[session].sessionID);
+                    listOfSessions[session].sessionID = NULL;
+                }
+
             break;
             
             case NEW_SESS:
                 //new sesssion
                 // for()
                 //printf("Creating new session...\n");
+
+                
+                for(; session < 100; session++){
+                    if(listOfSessions[session].sessionID == NULL) break;
+                    if((strcmp(listOfSessions[session].sessionID,listOfUsers[availableNum].sessionID) == 0)) {//session ID already exists
+                        sessionFail = 1;
+                    }
+                }
+                if(!sessionFail){ //session creation is good
+                
+                    receiveInfo = strtok(NULL,",");
+                    listOfSessions[session].sessionID = malloc(strlen(receiveInfo) + 1);
+                    strcpy(listOfSessions[session].sessionID, receiveInfo);
+
+                    listOfSessions[session].numClients = 1;
+
+                    listOfUsers[availableNum].sessionID = malloc(strlen(receiveInfo) + 1);
+                    strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
+
+
+
+                }
+                else{ //session creation fails
+
+                }
             break;
             
             case MESSAGE:
             break;
             
             case QUERY:
+                
+                bzero(queryMsg,BUFFER_SZ);
+                for(int i = 0; i < 100; i++){
+                    
+                    if(availalbeClientNums[i] == 0) continue; //occupied
+                    strcat(queryMsg,listOfUsers[i].clientID);
+                    strcat(queryMsg, " | ");
+                    if(listOfUsers[i].sessionID == NULL) strcat(queryMsg, "N/A");
+                    else strcat(queryMsg,listOfUsers[i].sessionID);
+                    strcat(queryMsg, "\n");
+                }
+                printf("%s",queryMsg);
+                write(connfd, queryMsg, BUFFER_SZ);
             break;
 
         }

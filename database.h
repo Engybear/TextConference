@@ -38,3 +38,8 @@ struct userInfo{
 
     int loggedIn;
 };
+
+struct sessionInfo{
+    char *sessionID;
+    int numClients;
+};
