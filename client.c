@@ -188,6 +188,10 @@ void login(char *inputSlice){
 }
 
 void joinSess(char *inputSlice){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     // extract the session ID from the user (doesnt have to be a number)
@@ -226,6 +230,10 @@ void joinSess(char *inputSlice){
 }
 
 void createSess(char *inputSlice){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     // extract the session ID from the user (doesnt have to be a number)
@@ -265,6 +273,10 @@ void createSess(char *inputSlice){
 }
 
 void leaveSess(){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -310,6 +322,10 @@ void list(){
 }
 
 void quit(){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -333,6 +349,10 @@ void quit(){
 }
 
 void logout(){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
