@@ -195,7 +195,7 @@ void joinSess(char *inputSlice){
     packet->type = JN_ACK;
     packet->size = strlen(sessionID);
     for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
-    for(int i = 0; i < strlen(sessionID); i++) packet->data[i] = sessionID[i];
+    for(int i = 0; i < strlen(client->sessionID); i++) packet->data[i] = sessionID[i];
 
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
