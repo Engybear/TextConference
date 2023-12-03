@@ -119,9 +119,11 @@ int main(){
 
 void login(char *inputSlice){
     
-    if(client->sockfd != -1) return; //already connected
+    if(client->sockfd != -1){
+        printf("Already connected to a server\n");
+        return; //already connected
+    } 
     client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    printf("sockfd at start: %d\n",client->sockfd);
     if(client->sockfd == -1) {
         printf("socket creation failed\n");
         exit(0);
@@ -141,8 +143,6 @@ void login(char *inputSlice){
     inputSlice = strtok(NULL, "\0");
     serverPort = inputSlice;
 
-    printf("split msg: %s | %s | %s | %s\n",ID,pwd,serverIP,serverPort);
-
     client->serv_addr.sin_family = AF_INET;
     client->serv_addr.sin_addr.s_addr = inet_addr(serverIP); //take input from user
     client->serv_addr.sin_port = htons(atoi(serverPort)); //take input from user
@@ -151,8 +151,6 @@ void login(char *inputSlice){
         printf("unable to connect with server\n");
         return;
     }
-
-    printf("started packet making\n");
     struct message *packet = malloc(PACKET_SZ);
     packet->type = LOGIN; //assign packet type
 
@@ -169,7 +167,7 @@ void login(char *inputSlice){
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
 
-    printf("printing packet to send: %s\n",packetSend);
+    printf("Packet to send: %s\n",packetSend);
     
     write(client->sockfd,packetSend, strlen(packetSend));
 
@@ -177,7 +175,14 @@ void login(char *inputSlice){
     bzero(buff, sizeof(buff));
 
     read(client->sockfd, buff, sizeof(buff));
-    printf("Login acknowledgement: %s\n",buff);
+    inputSlice = strtok(buff, ",");
+    if(atoi(inputSlice) == LO_NAK){
+        client->sockfd = -1;
+        printf("Login was unsuccessful\n");
+    }
+    else{
+        printf("Login was successful\n");
+    }
     return;
     
 }
@@ -204,7 +209,8 @@ void joinSess(char *inputSlice){
 
     // send request to join session to server
     write(client->sockfd,packetSend, strlen(packetSend));
-    // send(client->sockfd, packetSend,PACKET_SZ, 0);
+
+    printf("Creating new session...\n");
 
     // wait for ACK / NACK
     //read(sockfd, buff, sizeof(buff));
