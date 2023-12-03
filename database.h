@@ -35,4 +35,6 @@ struct userInfo{
     int PORT;
 
     pthread_t thread;
+
+    int loggedIn;
 };

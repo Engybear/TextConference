@@ -88,10 +88,12 @@ void *clientHandler(void *args){
         else { //if it doesn't exist, use that available num location and treat as new client
             printf("new client! %d\n",availableNum);
             availalbeClientNums[availableNum] = 1;
-            listOfUsers[availableNum].clientID = malloc(strlen(receiveInfo) * sizeof(receiveInfo));
-            listOfUsers[availableNum].clientID = receiveInfo;
+            
+            listOfUsers[availableNum].clientID = malloc(strlen(receiveInfo) + 1);
+            strcpy(listOfUsers[availableNum].clientID,receiveInfo);
             listOfUsers[availableNum].sessionID = NULL;    
             listOfUsers[availableNum].PORT = -1; 
+            listOfUsers[availableNum].loggedIn = 0;
         }
 
         int accepted = 0;
@@ -122,9 +124,10 @@ void *clientHandler(void *args){
                     }
                 }
                 printf("accept check\n");
-                if(accepted == 1){
+                if(accepted == 1 && listOfUsers[availableNum].loggedIn == 0){
                     printf("successful login!\n");
                     //send LO_ACK
+                    listOfUsers[availableNum].loggedIn = 1;
 
                     struct message *packet = malloc(PACKET_SZ);
                     packet->type = LO_ACK;
@@ -168,6 +171,7 @@ void *clientHandler(void *args){
             break;
 
             case EXIT:
+                listOfUsers[availableNum].loggedIn = 0;
             break;
 
             case JOIN:
