@@ -1,3 +1,6 @@
+#include <asm-generic/socket.h>
+#include <bits/pthreadtypes.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -28,6 +31,7 @@
 
 const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000
+const int MAX_USERS = 100;
 
 char inputBuf[1000];
 
@@ -37,7 +41,8 @@ struct clientInfo{
     int sockfd; //4
     struct sockaddr_in serv_addr;
     int inSession;
-    
+    char *myPort;
+    pthread_t thread;    
 };
 
 struct clientInfo *client;
@@ -52,6 +57,64 @@ void quit();
 void text(char *inputSlice);
 
 const int clientInfoSZ = 2008;
+
+void *listeningThread(){
+    int tempSock;
+    int optval = 1;
+    
+    int destPort = atoi(client->myPort) + 1;
+    sprintf(client->myPort, "%d",destPort);
+
+    struct addrinfo *hints, *addr;
+    memset(hints, 0, sizeof (&hints));
+    hints->ai_family = AF_INET;
+    hints->ai_socktype = SOCK_STREAM;
+    hints->ai_flags = AI_PASSIVE;     
+
+    int rv = getaddrinfo(NULL, client->myPort, hints, &addr);
+    tempSock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+    setsockopt(tempSock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval));
+    if(bind(tempSock,addr->ai_addr,addr->ai_addrlen)){
+        printf("failed to bind for listen\n");
+        pthread_exit(0);
+    }
+
+    if(listen(tempSock,MAX_USERS) < 0){
+        printf("failed to setup listen queue\n");
+        pthread_exit(0);
+    }
+
+    struct sockaddr otherClient;
+    socklen_t cli_len = sizeof(otherClient);
+    while(1){
+        int connfd = accept(tempSock, (struct sockaddr*)&otherClient, &cli_len);
+        if(connfd == -1){
+            printf("failed to accept\n");
+            pthread_exit(0);
+        }
+
+        //fork to read a message???
+        char messageBuff[BUFFER_SZ];
+        read(connfd,messageBuff,BUFFER_SZ);
+        printf("%s\n",messageBuff);
+
+    }
+        
+
+    
+    struct sockaddr_in serv_addr;
+    bzero(&serv_addr,sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = IP;
+    serv_addr.sin_port = htons(client->myPort + 1);
+
+    if(connect(tempSock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))){
+        printf("failed to setup listening connection\n");
+        // exit(0)
+    }
+
+}
 
 int main(){
 
@@ -106,11 +169,10 @@ int main(){
             break;
             
         }else{ //just text to send
-        
             inputBuf[strlen(inputSlice)] = ' '; //restores buffer
             printf("inputBuf restored: %s\n",inputBuf);
             text(inputBuf);
-            
+        
             //check if in server and in a session to send text
             printf("Invalid command or text to send\n");
         }
@@ -187,7 +249,13 @@ void login(char *inputSlice){
     }
     else{
         printf("Login was successful\n");
+        inputSlice = strtok(NULL,",");
+        client->myPort = inputSlice;
+
     }
+
+    client->inSession = 0;
+
     return;
     
 }
@@ -231,6 +299,11 @@ void joinSess(char *inputSlice){
     else if(atoi(inputSlice) == JN_ACK){
         printf("Joining new session was successful\n");
     }
+
+    client->inSession = 1;
+
+    pthread_create(&client->thread, NULL, listeningThread,NULL);
+
     return;
 }
 
@@ -270,8 +343,10 @@ void createSess(char *inputSlice){
     }
     else{
         printf("Creating new session was successful\n");
+        pthread_create(&client->thread, NULL, listeningThread,NULL);
     }
     
+    client->inSession = 1;
 
     return;
 }
@@ -297,6 +372,8 @@ void leaveSess(){
     // send request to create the session to the server
     write(client->sockfd,packetSend, strlen(packetSend));
     printf("Left session successfully\n");
+
+    client->inSession = 0;
 
     return;
 }
@@ -355,48 +432,41 @@ void logout(){
     // send quit request
     write(client->sockfd,packetSend, strlen(packetSend));
 
+    client->inSession = 0;
     // wait for ack?
     // read(client->sockfd, buff, sizeof(buff));
     // parse the buffer message from the server
     return;
 }
 
-void text(char *messageData){
+void text(char *inputSlice){
     if(client->sockfd == -1){
         printf("Not connected to a server\n");
         return; //already connected
     } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
-
+    // extract the session ID from the user (doesnt have to be a number)
+    char *sessionID = malloc(1000);
     struct message *packet = malloc(PACKET_SZ);
-    //assign packet type
-    packet->type = MESSAGE;
-    //assign packet source
+    inputSlice = strtok(NULL, " ");
+    sessionID = inputSlice;
+    client->sessionID = sessionID;
+    // format the message
+    packet->type = NEW_SESS;
+    packet->size = strlen(sessionID);
     for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
-    //assign packet data
-    char *data = malloc(1000);
-    data = messageData;
-    for(int j = 0; j < 1000; j++) packet->data[j] = data[j];
-    //assign packet data length
-    packet->size = strlen(data); 
-    //compile packet into a buffer to send
+    for(int i = 0; i < strlen(client->sessionID); i++) packet->data[i] = sessionID[i];
+
+    // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-
-    printf("Packet to send: %s\n",packetSend);
-
+    printf("printing packet to send: %s\n",packetSend);
+    
     // send request to create the session to the server
-    write(client->sockfd, packetSend, strlen(packetSend));
+    write(client->sockfd,packetSend, strlen(packetSend));
     
     // wait for ACK/NACK
-    // read(client->sockfd, buff, sizeof(buff));
-    // messageData = strtok(buff, ",");
-    // if(atoi(messageData) == QU_ACK){
-    //     printf("Message was recieved successfully\n");
-    // }
-    // else{
-    //     printf("Message was not recieved\n");
-    // }
+    read(client->sockfd, buff, sizeof(buff));
     return;
 }

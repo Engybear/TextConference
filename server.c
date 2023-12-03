@@ -126,8 +126,10 @@ void *clientHandler(void *args){
 
                     struct message *packet = malloc(PACKET_SZ);
                     packet->type = LO_ACK;
-                    packet->size = 0;
-                    packet->data[0] = 0;
+                    packet->size = 6;
+                    char *data = malloc(6);
+                    sprintf(data,"%d",listOfUsers[availableNum].PORT);
+                    for(int j = 0; j < BUFFER_SZ; j++) packet->data[j] = data[j];
                     for(int j = 0; j < BUFFER_SZ; j++) packet->source[j] = listOfUsers[availableNum].clientID[j];
 
                     char *packetSend = malloc(PACKET_SZ);
@@ -319,8 +321,8 @@ void *clientHandler(void *args){
                                     printf("failed to setup listening connection\n");
                                     // exit(0)
                                 }
-
-                                write(tempSock,)
+                                receiveInfo = strtok(NULL, ",");
+                                write(tempSock,receiveInfo,sizeof(receiveInfo));
                         }
                     }
                 }else printf("You are not in a session\n");
