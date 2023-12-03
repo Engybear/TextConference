@@ -108,7 +108,7 @@ int main(){
         
             inputBuf[strlen(inputSlice)] = ' '; //restores buffer
             printf("inputBuf restored: %s\n",inputBuf);
-            //text(inputSlice);
+            text(inputBuf);
             
             //check if in server and in a session to send text
             printf("Invalid command or text to send\n");
@@ -360,32 +360,11 @@ void logout(){
     return;
 }
 
-void text(char *inputSlice){
-    if(client->sockfd == -1){
-        printf("Not connected to a server\n");
-        return; //already connected
-    } 
+void text(char *messageData){
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
-    // extract the session ID from the user (doesnt have to be a number)
-    char *sessionID = malloc(1000);
-    struct message *packet = malloc(PACKET_SZ);
-    inputSlice = strtok(NULL, " ");
-    sessionID = inputSlice;
-    client->sessionID = sessionID;
-    // format the message
-    packet->type = NEW_SESS;
-    packet->size = strlen(sessionID);
-    for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
-    for(int i = 0; i < strlen(client->sessionID); i++) packet->data[i] = sessionID[i];
-
-    // send message as one contiguous string
-    char *packetSend = malloc(PACKET_SZ);
-    sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
-    
     // send request to create the session to the server
-    write(client->sockfd,packetSend, strlen(packetSend));
+    write(client->sockfd, messageData, strlen(messageData));
     
     // wait for ACK/NACK
     read(client->sockfd, buff, sizeof(buff));
