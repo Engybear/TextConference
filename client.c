@@ -368,5 +368,12 @@ void text(char *messageData){
     
     // wait for ACK/NACK
     read(client->sockfd, buff, sizeof(buff));
+    messageData = strtok(buff, ",");
+    if(atoi(messageData) == QU_ACK){
+        printf("Message was recieved successfully\n");
+    }
+    else{
+        printf("Message was not recieved\n");
+    }
     return;
 }
