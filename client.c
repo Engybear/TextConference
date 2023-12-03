@@ -1,5 +1,3 @@
-#include <asm-generic/socket.h>
-#include <bits/pthreadtypes.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,7 +60,7 @@ void *listeningThread(){
     int tempSock;
     int optval = 1;
     
-    int destPort = atoi(client->myPort) + 1;
+    int destPort = atoi(client->myPort) + 1 ;
     sprintf(client->myPort, "%d",destPort);
 
     struct addrinfo *hints, *addr;
@@ -99,21 +97,6 @@ void *listeningThread(){
         printf("%s\n",messageBuff);
 
     }
-        
-
-    
-    struct sockaddr_in serv_addr;
-    bzero(&serv_addr,sizeof(serv_addr));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = IP;
-    serv_addr.sin_port = htons(client->myPort + 1);
-
-    if(connect(tempSock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))){
-        printf("failed to setup listening connection\n");
-        // exit(0)
-    }
-
 }
 
 int main(){
