@@ -191,6 +191,9 @@ void *clientHandler(void *args){
                     strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
 
                     listOfSessions[availableNum].numClients++;
+                    write(connfd, "5,",3);
+                }else{
+                    write(connfd, "6,",3);
                 }
 
 
@@ -212,6 +215,10 @@ void *clientHandler(void *args){
                     free(listOfSessions[session].sessionID);
                     listOfSessions[session].sessionID = NULL;
                 }
+
+                free(listOfUsers[availableNum].sessionID);
+                listOfUsers[availableNum].sessionID = NULL;
+                
 
             break;
             
@@ -237,11 +244,15 @@ void *clientHandler(void *args){
 
                     listOfUsers[availableNum].sessionID = malloc(strlen(receiveInfo) + 1);
                     strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
+                    printf("creating new session writes out\n");
+                    write(connfd, "9,",3);
 
 
 
                 }
                 else{ //session creation fails
+                
+                    write(connfd, "-1,",4);
 
                 }
             break;
@@ -264,7 +275,9 @@ void *clientHandler(void *args){
                 printf("%s",queryMsg);
                 write(connfd, queryMsg, BUFFER_SZ);
             break;
-
+            default:
+                printf("unexpected packet type\n");
+            break;
         }
     }
 

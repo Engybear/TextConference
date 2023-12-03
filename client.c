@@ -201,7 +201,7 @@ void joinSess(char *inputSlice){
     sessionID = inputSlice;
     client->sessionID = sessionID;
     // format the message
-    packet->type = JN_ACK;
+    packet->type = JOIN;
     packet->size = strlen(sessionID);
     for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
     for(int i = 0; i < strlen(client->sessionID); i++) packet->data[i] = sessionID[i];
@@ -214,7 +214,7 @@ void joinSess(char *inputSlice){
     // send request to join session to server
     write(client->sockfd,packetSend, strlen(packetSend));
 
-    printf("Creating new session...\n");
+    // printf("Creating new session...\n");
 
     // wait for ACK / NACK
     read(client->sockfd, buff, sizeof(buff));
