@@ -29,6 +29,7 @@ struct userChecks{
 struct threadArgs{
     char ip_address[1024];
     int sockfd;
+    int portNum;
 };
 
     
@@ -48,6 +49,7 @@ void *clientHandler(void *args){
     for(int i = 0; i < 1024; i++) ip_address[i] = arg->ip_address[i];
     int connfd = arg->sockfd;
     printf("start of thread connfd: %d\n",connfd);
+    int port = arg->portNum;
 
     while(1){
         char buff[PACKET_SZ];
@@ -57,6 +59,7 @@ void *clientHandler(void *args){
         for(; availableNum < MAX_USERS; availableNum++) if(availalbeClientNums[availableNum] == 0) break; //get us to an available client number in database
         
         listOfUsers[availableNum].IP = ip_address;
+        listOfUsers[availableNum].PORT = port;
 
         read(connfd,buff,sizeof(buff));
         printf("%s\n",buff);
@@ -242,9 +245,13 @@ int main(int argc, char *argv[]){
         inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
         printf("Received connection from: %s\n",ip_address);
 
+        int portNum = ((struct sockaddr_in*)&client)->sin_port;
+        printf("With port number: %d\n",portNum);
+
         struct threadArgs *args = malloc(sizeof(struct threadArgs)); 
         for(int i = 0; i < 1024; i++) args->ip_address[i] = ip_address[i];
         args->sockfd = connfd;
+        args->portNum = portNum; 
 
         pthread_create(&listOfUsers[i].thread, NULL, clientHandler, args);
         i++;
