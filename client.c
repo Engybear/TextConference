@@ -213,7 +213,15 @@ void joinSess(char *inputSlice){
     printf("Creating new session...\n");
 
     // wait for ACK / NACK
-    //read(sockfd, buff, sizeof(buff));
+    read(client->sockfd, buff, sizeof(buff));
+    inputSlice = strtok(buff, ",");
+    if(atoi(inputSlice) == JN_NAK){
+        client->sockfd = -1;
+        printf("Joining new session was unsuccessful\n");
+    }
+    else if(atoi(inputSlice) == JN_ACK){
+        printf("Joining new session was successful\n");
+    }
     return;
 }
 
@@ -241,8 +249,17 @@ void createSess(char *inputSlice){
     write(client->sockfd,packetSend, strlen(packetSend));
     
     // wait for ACK/NACK
-    // read(client->sockfd, buff, sizeof(buff));
-    // printf("%s", buff);
+    read(client->sockfd, buff, sizeof(buff));
+
+    inputSlice = strtok(buff, ",");
+    if(atoi(inputSlice) != NS_ACK){
+        client->sockfd = -1;
+        printf("Creating new session was unsuccessful\n");
+    }
+    else{
+        printf("Creating new session was successful\n");
+    }
+    
 
     return;
 }
@@ -263,10 +280,7 @@ void leaveSess(){
 
     // send request to create the session to the server
     write(client->sockfd,packetSend, strlen(packetSend));
-    printf("made it to end");
-    // wait for ACK/NACK
-    //read(sockfd, buff, sizeof(buff));
-    // parse the buffer message from the server
+    printf("Left session successfully\n");
 
     return;
 }
@@ -290,7 +304,7 @@ void list(){
 
     // wait for ACK/NACK
     read(client->sockfd, buff, sizeof(buff));
-    // parse the buffer message from the server
+    printf("List of clients and sessions:\n %s", buff);
 
     return;
 }

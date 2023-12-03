@@ -177,9 +177,6 @@ void *clientHandler(void *args){
             break;
             
             case NEW_SESS:
-                //new sesssion
-                // for()
-                //printf("Creating new session...\n");
             break;
             
             case MESSAGE:
