@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 const int MAX_NAME = 1000;
 const int MAX_DATA = 1000;
 
@@ -31,4 +33,6 @@ struct userInfo{
 
     char *IP;
     int PORT;
+
+    pthread_t thread;
 };

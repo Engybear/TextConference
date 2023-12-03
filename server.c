@@ -10,6 +10,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#include <pthread.h>
+
 #include <assert.h>
 
 #include "database.h"
@@ -24,59 +26,33 @@ struct userChecks{
     char *pwd;
 };
 
+struct threadArgs{
+    char ip_address[1024];
+    int sockfd;
+};
+
+    
 
 const int BUFFER_SZ = 1000;
 const int PACKET_SZ = 2011; // 4 + 4 + 1000 + 1000 + 3
 const int MAX_USERS = 100;
 
+struct userInfo listOfUsers[100];
+struct userChecks acceptedUsers[100];
 int availalbeClientNums[100] = {0}; //0 means available, 1 means taken
 
-int main(int argc, char *argv[]){
-    struct userChecks acceptedUsers[MAX_USERS];
-    acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "pwd";
-    acceptedUsers[1].id = "Bob"; acceptedUsers[1].pwd = "bob123";
-
-    if(argc != 2){
-        fprintf(stderr,"usage: server port needed\n");
-		exit(1);
-    }   
-
-    int sockfd;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    
-    struct sockaddr_in serv_addr;
-    bzero(&serv_addr,sizeof(serv_addr));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(atoi(argv[1]));
-
-    if((bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0){
-        printf("failed to bind?\n");
-        exit(0);
-    }
-    
-    struct userInfo listOfUsers[100];
-    char buff[PACKET_SZ];
-
-    listen(sockfd,MAX_USERS); //queue max users
-
-    
-    struct sockaddr_storage client;
-    socklen_t cli_len = sizeof(client);
-    int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
-    if(connfd < 0) printf("connfd failed\n");
-    printf("connect checks out\n");
+void *clientHandler(void *args){
+    struct threadArgs *arg = (struct threadArgs *)args; 
     
     char ip_address[1024];
-    inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
-    printf("Received connection from: %s\n",ip_address);
+    for(int i = 0; i < 1024; i++) ip_address[i] = arg->ip_address[i];
+    int connfd = arg->sockfd;
 
     while(1){
 
+    char buff[PACKET_SZ];
         bzero(buff, PACKET_SZ);
 
-        
         int availableNum = 0;
         for(; availableNum < MAX_USERS; availableNum++) if(availalbeClientNums[availableNum] == 0) break; //get us to an available client number in database
         
@@ -129,6 +105,7 @@ int main(int argc, char *argv[]){
                         break;
                     }
                 }
+                printf("accept check\n");
                 if(accepted == 1){
                     printf("successful login!\n");
                     //send LO_ACK
@@ -202,6 +179,53 @@ int main(int argc, char *argv[]){
     
     }
 
+}
 
+int main(int argc, char *argv[]){
+    acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "pwd";
+    acceptedUsers[1].id = "Bob"; acceptedUsers[1].pwd = "bob123";
+
+    if(argc != 2){
+        fprintf(stderr,"usage: server port needed\n");
+		exit(1);
+    }   
+
+    int sockfd;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    struct sockaddr_in serv_addr;
+    bzero(&serv_addr,sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_addr.sin_port = htons(atoi(argv[1]));
+
+    if((bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) != 0){
+        printf("failed to bind?\n");
+        exit(0);
+    }
+    
+
+    listen(sockfd,MAX_USERS); //queue max users
+
+    int i = 0;
+    while(1){
+        struct sockaddr_storage client;
+        socklen_t cli_len = sizeof(client);
+        int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
+        if(connfd < 0) printf("connfd failed\n");
+        printf("connect checks out\n");
+        
+        char ip_address[1024];
+        inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
+        printf("Received connection from: %s\n",ip_address);
+
+        struct threadArgs *args = malloc(sizeof(struct threadArgs)); 
+        for(int i = 0; i < 1024; i++) args->ip_address[i] = ip_address[i];
+        args->sockfd = connfd;
+
+        pthread_create(&listOfUsers[i].thread, NULL, clientHandler, args);
+        i++;
+    }
     
 }
