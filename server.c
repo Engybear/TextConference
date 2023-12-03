@@ -173,6 +173,7 @@ void *clientHandler(void *args){
                 //clean up all info regarding user
                 listOfUsers[availableNum].loggedIn = 0;
                 free(listOfUsers[availableNum].clientID);
+                listOfUsers[availableNum].clientID = NULL;
                 listOfUsers[availableNum].IP = 0;
                 listOfUsers[availableNum].PORT = 0;
                 free(listOfUsers[availableNum].pwd);

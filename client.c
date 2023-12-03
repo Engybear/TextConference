@@ -79,6 +79,7 @@ int main(){
 
         }else if(strcmp(inputSlice,"/logout") == 0){
             printf("logout\n");
+            logout();
             if(client->sockfd != -1) client->sockfd = -1;
             
         }else if(strcmp(inputSlice,"/joinsession") == 0){
