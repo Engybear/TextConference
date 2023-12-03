@@ -61,21 +61,21 @@ int main(int argc, char *argv[]){
 
     listen(sockfd,MAX_USERS); //queue max users
 
+    
+    struct sockaddr_storage client;
+    socklen_t cli_len = sizeof(client);
+    int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
+    if(connfd < 0) printf("connfd failed\n");
+    printf("connect checks out\n");
+    
+    char ip_address[1024];
+    inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
+    printf("Received connection from: %s\n",ip_address);
+
     while(1){
-        printf("Start of loop\n");
+
         bzero(buff, PACKET_SZ);
 
-        struct sockaddr_storage client;
-        socklen_t cli_len = sizeof(client);
-
-
-        int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
-        if(connfd < 0) printf("connfd failed\n");
-        printf("connect checks out\n");
-
-        char ip_address[1024];
-        inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));
-        printf("Received connection from: %s\n",ip_address);
         
         int availableNum = 0;
         for(; availableNum < MAX_USERS; availableNum++) if(availalbeClientNums[availableNum] == 0) break; //get us to an available client number in database
@@ -198,8 +198,6 @@ int main(int argc, char *argv[]){
             break;
 
         }
-        printf("get to close\n");
-        close(sockfd);
 
     
     }

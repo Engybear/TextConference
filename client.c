@@ -180,7 +180,6 @@ void login(char *inputSlice){
     printf("Login acknowledgement: %s\n",buff);
     return;
     
-    close(client->sockfd);
 }
 
 void joinSess(char *inputSlice){
@@ -204,11 +203,8 @@ void joinSess(char *inputSlice){
     printf("printing packet to send: %s\n",packetSend);
 
     // send request to join session to server
-    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
-        printf("unable to connect with server\n");
-        return;
-    }
     write(client->sockfd,packetSend, strlen(packetSend));
+    // send(client->sockfd, packetSend,PACKET_SZ, 0);
 
     // wait for ACK / NACK
     //read(sockfd, buff, sizeof(buff));
@@ -236,13 +232,8 @@ void createSess(char *inputSlice){
     printf("printing packet to send: %s\n",packetSend);
     
     // send request to create the session to the server
-    printf("NULL? %d\n",client->sockfd);
-    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
-        printf("unable to connect with server\n");
-        return;
-    }
-    int check = write(client->sockfd,packetSend, strlen(packetSend));
-    printf("bytes written: %d\n",check);
+    write(client->sockfd,packetSend, strlen(packetSend));
+    
     // wait for ACK/NACK
     // read(client->sockfd, buff, sizeof(buff));
     // printf("%s", buff);
@@ -265,10 +256,6 @@ void leaveSess(){
     printf("printing packet to send: %s\n",packetSend);
 
     // send request to create the session to the server
-    if(connect(client->sockfd, (struct sockaddr*)&client->serv_addr, sizeof(client->serv_addr)) != 0){
-        printf("unable to connect with server\n");
-        return;
-    }
     write(client->sockfd,packetSend, strlen(packetSend));
     printf("made it to end");
     // wait for ACK/NACK
