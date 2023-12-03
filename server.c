@@ -199,7 +199,7 @@ void *clientHandler(void *args){
                     listOfSessions[availableNum].numClients++;
                     write(connfd, "5,",3);
                 }else{
-                    write(connfd, "6,",3);
+                    write(connfd, "6,No session exists",20);
                 }
 
 
