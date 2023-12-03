@@ -320,7 +320,7 @@ void list(){
 
     // wait for ACK/NACK
     read(client->sockfd, buff, sizeof(buff));
-    printf("List of clients and sessions:\n %s", buff);
+    printf("List of clients and sessions:\n%s", buff);
 
     return;
 }
