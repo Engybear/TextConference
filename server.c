@@ -114,12 +114,6 @@ void *clientHandler(void *args){
                 for(int j = 0; j < 2; j++){
                     if(strcmp(acceptedUsers[j].id,listOfUsers[availableNum].clientID) == 0
                      && strcmp(acceptedUsers[j].pwd,listOfUsers[availableNum].pwd) == 0){
-                        // printf("insane\n");
-                        // printf("comparing %s to ",acceptedUsers[0].id);
-                        // printf("%s\n",listOfUsers[availableNum].clientID);
-
-                        // printf("comparing %s to ",acceptedUsers[j].pwd);
-                        // printf("%s\n",listOfUsers[availableNum].pwd);
                         loginAccept = 1;
                         break;
                     }
@@ -228,6 +222,9 @@ void *clientHandler(void *args){
 
                     listOfSessions[availableNum].numClients++;
                     write(connfd, "5,",3);
+
+                    //setup listening thread
+
                 }else{
                     write(connfd, "6,No session exists,",21);
                 }
@@ -291,6 +288,7 @@ void *clientHandler(void *args){
                     printf("creating new session writes out\n");
                     write(connfd, "9,",3);
 
+                    //set up listening thread
 
 
                 }
@@ -302,6 +300,30 @@ void *clientHandler(void *args){
             break;
             
             case MESSAGE:
+                //if we are in a session,
+                if(listOfUsers[availableNum].sessionID != NULL){
+                    for(int i = 0; i < 100; i++){
+                        if(strcmp(listOfUsers[i].sessionID,listOfUsers[availableNum].sessionID) == 0){
+                            //two clients in the same session
+                                int tempSock;
+                                tempSock = socket(AF_INET, SOCK_STREAM, 0);
+                                
+                                struct sockaddr_in serv_addr;
+                                bzero(&serv_addr,sizeof(serv_addr));
+
+                                serv_addr.sin_family = AF_INET;
+                                serv_addr.sin_addr.s_addr = listOfUsers[availableNum].IP;
+                                serv_addr.sin_port = htons(listOfUsers[availableNum].PORT + 1);
+
+                                if(connect(tempSock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))){
+                                    printf("failed to setup listening connection\n");
+                                    // exit(0)
+                                }
+
+                                write(tempSock,)
+                        }
+                    }
+                }else printf("You are not in a session\n");
             break;
             
             case QUERY:

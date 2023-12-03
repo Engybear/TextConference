@@ -36,6 +36,7 @@ struct clientInfo{
     char *sessionID; //1000
     int sockfd; //4
     struct sockaddr_in serv_addr;
+    int inSession;
     
 };
 
@@ -50,7 +51,7 @@ void list();
 void quit();
 void text(char *inputSlice);
 
-const int clientInfoSZ = 2004;
+const int clientInfoSZ = 2008;
 
 int main(){
 
