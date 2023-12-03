@@ -47,7 +47,6 @@ void *clientHandler(void *args){
     char ip_address[1024];
     for(int i = 0; i < 1024; i++) ip_address[i] = arg->ip_address[i];
     int connfd = arg->sockfd;
-    printf("start of thread connfd: %d\n",connfd);
 
     while(1){
         char buff[PACKET_SZ];
@@ -73,8 +72,6 @@ void *clientHandler(void *args){
         int clientExists = 0;
         int existingNum = 0;
         for(; existingNum < availableNum; existingNum++){ //
-        
-            printf("%s vs. %s\n",listOfUsers[existingNum].clientID,receiveInfo);
             if(strcmp(listOfUsers[existingNum].clientID,receiveInfo) == 0){
                 clientExists = 1;
                 break;
@@ -99,15 +96,10 @@ void *clientHandler(void *args){
         switch(packetType){
             case LOGIN:
                 //check password correct
-                printf("%s\n",acceptedUsers[0].id);
-                printf("start of login\n");
+                printf("Logging in new user...\n");
                 
                 receiveInfo = strtok(NULL,","); //get pwd
                 listOfUsers[availableNum].pwd = receiveInfo;
-
-
-                printf("begin testing\n");
-
             
                 for(int j = 0; j < 2; j++){
                     if(strcmp(acceptedUsers[j].id,listOfUsers[availableNum].clientID) == 0
@@ -122,7 +114,6 @@ void *clientHandler(void *args){
                         break;
                     }
                 }
-                printf("accept check\n");
                 if(accepted == 1 && listOfUsers[availableNum].loggedIn == 0){
                     printf("successful login!\n");
                     //send LO_ACK
@@ -141,9 +132,7 @@ void *clientHandler(void *args){
                     write(connfd,packetSend, strlen(packetSend));
 
                     // free(packet);
-                    // free(packetSend);  
-                    
-                    printf("we escape login\n");       
+                    // free(packetSend);       
                 }
                 else {
                     printf("invalid login\n");
@@ -159,7 +148,7 @@ void *clientHandler(void *args){
 
                     char *packetSend = malloc(PACKET_SZ);
                     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-                    printf("printing packet to send: %s\n",packetSend);
+                    printf("Packet sending: %s\n",packetSend);
 
                     write(connfd,packetSend, strlen(packetSend));
 
@@ -177,17 +166,17 @@ void *clientHandler(void *args){
                 //join session id
                 //check if client is already in a session
                 //check if session id is valid 
-
-
+                printf("Joining session...\n");
             break;
 
             case LEAVE_SESS:
+                printf("Leaving session...\n");
             break;
             
             case NEW_SESS:
                 //new sesssion
                 // for()
-                printf("new session wanted\n");
+                //printf("Creating new session...\n");
             break;
             
             case MESSAGE:
@@ -197,8 +186,6 @@ void *clientHandler(void *args){
             break;
 
         }
-    printf("we get to the end of the while loop\n");
-    
     }
 
 }
