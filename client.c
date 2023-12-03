@@ -361,10 +361,32 @@ void logout(){
 }
 
 void text(char *messageData){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
+
+    struct message *packet = malloc(PACKET_SZ);
+    //assign packet type
+    packet->type = MESSAGE;
+    //assign packet source
+    for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
+    //assign packet data
+    char *data = malloc(1000);
+    data = messageData;
+    for(int j = 0; j < 1000; j++) packet->data[j] = data[j];
+    //assign packet data length
+    packet->size = strlen(data); 
+    //compile packet into a buffer to send
+    char *packetSend = malloc(PACKET_SZ);
+    sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
+
+    printf("Packet to send: %s\n",packetSend);
+
     // send request to create the session to the server
-    write(client->sockfd, messageData, strlen(messageData));
+    write(client->sockfd, packetSend, strlen(packetSend));
     
     // wait for ACK/NACK
     read(client->sockfd, buff, sizeof(buff));
