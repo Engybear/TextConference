@@ -56,45 +56,51 @@ void text(char *inputSlice);
 
 const int clientInfoSZ = 2008;
 
-void *listeningThread(){
-    int tempSock;
+void *listeningThread(void *args){
+    printf("very top of thread listen\n");
+    int tempSock = -1;
     int optval = 1;
     
     int destPort = atoi(client->myPort) + 1;
     sprintf(client->myPort, "%d",destPort);
 
-    struct addrinfo *hints, *addr;
-    memset(hints, 0, sizeof (&hints));
-    hints->ai_family = AF_INET;
-    hints->ai_socktype = SOCK_STREAM;
-    hints->ai_flags = AI_PASSIVE;     
+    struct addrinfo hints, *addr;
+    memset(&hints, 0, sizeof (hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;     
 
-    int rv = getaddrinfo(NULL, client->myPort, hints, &addr);
+    printf("starting listening thread\n");
+
+    int rv = getaddrinfo(NULL, client->myPort, &hints, &addr);
     tempSock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
     setsockopt(tempSock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval));
     if(bind(tempSock,addr->ai_addr,addr->ai_addrlen)){
         printf("failed to bind for listen\n");
         pthread_exit(0);
     }
+    printf("bind done\n");
 
     if(listen(tempSock,MAX_USERS) < 0){
         printf("failed to setup listen queue\n");
         pthread_exit(0);
     }
+    printf("listen done\n");
 
     struct sockaddr otherClient;
     socklen_t cli_len = sizeof(otherClient);
     while(1){
+        printf("starting accept\n");
         int connfd = accept(tempSock, (struct sockaddr*)&otherClient, &cli_len);
         if(connfd == -1){
             printf("failed to accept\n");
             pthread_exit(0);
         }
 
-        //fork to read a message???
-        char messageBuff[BUFFER_SZ];
-        read(connfd,messageBuff,BUFFER_SZ);
-        printf("%s\n",messageBuff);
+        // //fork to read a message???
+        // char messageBuff[BUFFER_SZ];
+        // read(connfd,messageBuff,BUFFER_SZ);
+        // printf("%s\n",messageBuff);
 
     }
 }
