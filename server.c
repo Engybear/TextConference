@@ -108,7 +108,8 @@ void *clientHandler(void *args){
                 printf("Logging in new user...\n");
                 
                 receiveInfo = strtok(NULL,","); //get pwd
-                listOfUsers[availableNum].pwd = receiveInfo;
+                listOfUsers[availableNum].pwd = malloc(strlen(receiveInfo) + 1);
+                strcpy(listOfUsers[availableNum].pwd,receiveInfo);
             
                 for(int j = 0; j < 2; j++){
                     if(strcmp(acceptedUsers[j].id,listOfUsers[availableNum].clientID) == 0
@@ -169,7 +170,34 @@ void *clientHandler(void *args){
             break;
 
             case EXIT:
+                //clean up all info regarding user
                 listOfUsers[availableNum].loggedIn = 0;
+                free(listOfUsers[availableNum].clientID);
+                listOfUsers[availableNum].IP = 0;
+                listOfUsers[availableNum].PORT = 0;
+                free(listOfUsers[availableNum].pwd);
+                listOfUsers[availableNum].pwd = NULL;
+
+                availalbeClientNums[availableNum] = 0;
+
+                //check for sessions to clean up
+                if(listOfUsers[availableNum].sessionID != NULL){
+                    for(int i = 0; i<100; i++){
+                        if(strcmp(listOfSessions[i].sessionID,listOfUsers[availableNum].sessionID) == 0){
+                            listOfSessions[i].numClients--;
+                            if(listOfSessions[i].numClients == 0){
+                                free(listOfSessions[i].sessionID);
+                                listOfSessions[i].sessionID = NULL;
+                            }
+                            break;
+                        }
+                    }
+
+                    free(listOfUsers[availableNum].sessionID);
+                    listOfUsers[availableNum].sessionID = NULL;
+                }
+                printf("logout finished\n");
+
             break;
 
             case JOIN:
@@ -179,7 +207,7 @@ void *clientHandler(void *args){
                 printf("Joining session...\n");
                 
                 if(listOfUsers[availableNum].sessionID != NULL){
-                    write(connfd, "6,Already in session",20);
+                    write(connfd, "6,Already in session,",21);
                     break; 
                 }
 
@@ -199,7 +227,7 @@ void *clientHandler(void *args){
                     listOfSessions[availableNum].numClients++;
                     write(connfd, "5,",3);
                 }else{
-                    write(connfd, "6,No session exists",20);
+                    write(connfd, "6,No session exists,",21);
                 }
 
 

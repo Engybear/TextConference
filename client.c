@@ -113,6 +113,7 @@ int main(){
         }
     }
     printf("program quiting\n");
+    free(client);
     exit(0);
 }
 
@@ -326,29 +327,7 @@ void list(){
 }
 
 void quit(){
-    if(client->sockfd == -1){
-        printf("Not connected to a server\n");
-        return; //already connected
-    } 
-    char buff[BUFFER_SZ];
-    bzero(buff, sizeof(buff));
-    struct message *packet = malloc(PACKET_SZ);
-    // format the message
-    packet->type = EXIT;
-    packet->size = 0;
-    for(int i = 0; i < strlen(client->clientID); i++) packet->source[i] = client->clientID[i];
-    packet->data[0] = '\0';
-    // send message as one contiguous string
-    char *packetSend = malloc(PACKET_SZ);
-    sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
-
-    // send quit request
-    write(client->sockfd,packetSend, strlen(packetSend));
-
-    // wait for ack?
-    read(client->sockfd, buff, sizeof(buff));
-    // parse the buffer message from the server
+    logout();
     return;
 }
 
@@ -374,7 +353,7 @@ void logout(){
     write(client->sockfd,packetSend, strlen(packetSend));
 
     // wait for ack?
-    read(client->sockfd, buff, sizeof(buff));
+    // read(client->sockfd, buff, sizeof(buff));
     // parse the buffer message from the server
     return;
 }
