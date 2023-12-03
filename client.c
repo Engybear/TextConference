@@ -298,6 +298,10 @@ void leaveSess(){
 }
 
 void list(){
+    if(client->sockfd == -1){
+        printf("Not connected to a server\n");
+        return; //already connected
+    } 
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
