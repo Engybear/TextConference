@@ -60,7 +60,7 @@ void *listeningThread(){
     int tempSock;
     int optval = 1;
     
-    int destPort = atoi(client->myPort) + 1 ;
+    int destPort = atoi(client->myPort) + 1;
     sprintf(client->myPort, "%d",destPort);
 
     struct addrinfo *hints, *addr;
