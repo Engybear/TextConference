@@ -197,6 +197,7 @@ void *clientHandler(void *args){
                     listOfUsers[availableNum].sessionID = NULL;
                 }
                 printf("logout finished\n");
+                pthread_exit(0);
 
             break;
 
