@@ -180,13 +180,17 @@ void *clientHandler(void *args){
                 //check for sessions to clean up
                 if(listOfUsers[availableNum].sessionID != NULL){
                     for(int i = 0; i<100; i++){
+                        printf("runs %d\n",i);
                         if(listOfSessions[i].sessionID == NULL) continue;
                         if(strcmp(listOfSessions[i].sessionID,listOfUsers[availableNum].sessionID) == 0){
                             listOfSessions[i].numClients--;
+                            printf("clients in help: %d",listOfSessions[i].numClients);
                             if(listOfSessions[i].numClients == 0){
+                                printf("session is freed??\n");
                                 free(listOfSessions[i].sessionID);
                                 listOfSessions[i].sessionID = NULL;
                             }
+                            
                             break;
                         }
                     }
@@ -214,8 +218,8 @@ void *clientHandler(void *args){
                 receiveInfo = strtok(NULL,",");
                 session = 0;
                 for(; session < 100; session++){
-                    printf("%s\n",listOfSessions[session].sessionID);
                     if(listOfSessions[session].sessionID == NULL) continue;
+                    printf("%s\n",listOfSessions[session].sessionID);
                     if(strcmp(listOfSessions[session].sessionID,receiveInfo) == 0) {
                         sessionFail = 0;
                         printf("we found the matching session to join\n");
@@ -226,7 +230,9 @@ void *clientHandler(void *args){
                     listOfUsers[availableNum].sessionID = malloc(strlen(receiveInfo) + 1);
                     strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
 
-                    listOfSessions[availableNum].numClients++;
+                    listOfSessions[session].numClients++;
+                    
+                    printf("clients in help: %d",listOfSessions[session].numClients);
                     write(connfd, "5,",3);
 
                     //setup listening thread
@@ -252,6 +258,8 @@ void *clientHandler(void *args){
                 }
                 printf("compares done\n");
                 listOfSessions[session].numClients--;
+                
+                printf("clients in help: %d",listOfSessions[session].numClients);
                 if(listOfSessions[session].numClients == 0){
                     printf("deleteing session\n");
                     free(listOfSessions[session].sessionID);
@@ -281,10 +289,11 @@ void *clientHandler(void *args){
                     if(listOfSessions[session].sessionID == NULL) break;
                 }
                 for(int j = 0; j < 100; j++){
-                    printf("%s\n",listOfSessions[j].sessionID);
                     if(listOfSessions[j].sessionID == NULL) continue;
-                    if((strcmp(listOfSessions[session].sessionID,receiveInfo) == 0)) {//session ID already exists
+                    printf("%s\n",listOfSessions[j].sessionID);
+                    if((strcmp(listOfSessions[j].sessionID,receiveInfo) == 0)) {//session ID already exists
                         sessionFail = 1;
+                        printf("expect this to run\n");
                         break;
                     }
                 }
@@ -295,6 +304,8 @@ void *clientHandler(void *args){
                     strcpy(listOfSessions[session].sessionID, receiveInfo);
 
                     listOfSessions[session].numClients = 1;
+                    
+                    printf("clients in help: %d",listOfSessions[session].numClients);
 
                     listOfUsers[availableNum].sessionID = malloc(strlen(receiveInfo) + 1);
                     strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
