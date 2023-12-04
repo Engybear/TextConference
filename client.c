@@ -70,10 +70,12 @@ void *listeningThread(void *args){
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;     
 
-    printf("starting listening thread\n");
 
     int rv = getaddrinfo(NULL, client->myPort, &hints, &addr);
     tempSock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+
+    printf("socket to bind to %d | port in use %s\n",tempSock,client->myPort);
+
     setsockopt(tempSock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval));
     if(bind(tempSock,addr->ai_addr,addr->ai_addrlen)){
         printf("failed to bind for listen\n");
@@ -98,9 +100,9 @@ void *listeningThread(void *args){
         }
 
         // //fork to read a message???
-        // char messageBuff[BUFFER_SZ];
-        // read(connfd,messageBuff,BUFFER_SZ);
-        // printf("%s\n",messageBuff);
+        char messageBuff[BUFFER_SZ];
+        read(connfd,messageBuff,BUFFER_SZ);
+        printf("%s\n",messageBuff);
 
     }
 }
@@ -163,7 +165,7 @@ int main(){
             text(inputBuf);
         
             //check if in server and in a session to send text
-            printf("Invalid command or text to send\n");
+            // printf("Invalid command or text to send\n");
         }
     }
     printf("program quiting\n");
@@ -239,7 +241,11 @@ void login(char *inputSlice){
     else{
         printf("Login was successful\n");
         inputSlice = strtok(NULL,",");
-        client->myPort = inputSlice;
+        inputSlice = strtok(NULL, ",");
+        inputSlice = strtok(NULL, ",");
+        client->myPort = malloc(strlen(inputSlice) + 1);
+        strcpy(client->myPort,inputSlice);
+        printf("port received from server: %s\n",inputSlice);
 
     }
 

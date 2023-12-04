@@ -42,7 +42,7 @@ struct sessionInfo listOfSessions[100];
 
 struct userInfo listOfUsers[100];
 struct userChecks acceptedUsers[100];
-int availalbeClientNums[100] = {0}; //0 means available, 1 means taken
+int availableClientNums[100] = {0}; //0 means available, 1 means taken
 
 void *clientHandler(void *args){
     struct threadArgs *arg = (struct threadArgs *)args; 
@@ -57,7 +57,7 @@ void *clientHandler(void *args){
         bzero(buff, PACKET_SZ);
 
         int availableNum = 0;
-        for(; availableNum < MAX_USERS; availableNum++) if(availalbeClientNums[availableNum] == 0) break; //get us to an available client number in database
+        for(; availableNum < MAX_USERS; availableNum++) if(availableClientNums[availableNum] == 0) break; //get us to an available client number in database
         
         listOfUsers[availableNum].IP = ip_address;
         listOfUsers[availableNum].PORT = port;
@@ -76,7 +76,8 @@ void *clientHandler(void *args){
         //need to check if client id is already in database
         int clientExists = 0;
         int existingNum = 0;
-        for(; existingNum < availableNum; existingNum++){ //
+        for(; existingNum < MAX_USERS; existingNum++){
+            if(listOfUsers[existingNum].clientID == NULL) continue;
             if(strcmp(listOfUsers[existingNum].clientID,receiveInfo) == 0){
                 clientExists = 1;
                 break;
@@ -88,12 +89,11 @@ void *clientHandler(void *args){
         }
         else { //if it doesn't exist, use that available num location and treat as new client
             printf("new client! %d\n",availableNum);
-            availalbeClientNums[availableNum] = 1;
+            availableClientNums[availableNum] = 1;
             
             listOfUsers[availableNum].clientID = malloc(strlen(receiveInfo) + 1);
             strcpy(listOfUsers[availableNum].clientID,receiveInfo);
-            listOfUsers[availableNum].sessionID = NULL;    
-            // listOfUsers[availableNum].PORT = -1; 
+            listOfUsers[availableNum].sessionID = NULL;
             listOfUsers[availableNum].loggedIn = 0;
         }
 
@@ -111,7 +111,7 @@ void *clientHandler(void *args){
                 listOfUsers[availableNum].pwd = malloc(strlen(receiveInfo) + 1);
                 strcpy(listOfUsers[availableNum].pwd,receiveInfo);
             
-                for(int j = 0; j < 2; j++){
+                for(int j = 0; j < 3; j++){
                     if(strcmp(acceptedUsers[j].id,listOfUsers[availableNum].clientID) == 0
                      && strcmp(acceptedUsers[j].pwd,listOfUsers[availableNum].pwd) == 0){
                         loginAccept = 1;
@@ -175,11 +175,12 @@ void *clientHandler(void *args){
                 free(listOfUsers[availableNum].pwd);
                 listOfUsers[availableNum].pwd = NULL;
 
-                availalbeClientNums[availableNum] = 0;
+                availableClientNums[availableNum] = 0;
 
                 //check for sessions to clean up
                 if(listOfUsers[availableNum].sessionID != NULL){
                     for(int i = 0; i<100; i++){
+                        if(listOfSessions[i].sessionID == NULL) continue;
                         if(strcmp(listOfSessions[i].sessionID,listOfUsers[availableNum].sessionID) == 0){
                             listOfSessions[i].numClients--;
                             if(listOfSessions[i].numClients == 0){
@@ -211,10 +212,13 @@ void *clientHandler(void *args){
 
                 sessionFail = 1;
                 receiveInfo = strtok(NULL,",");
+                session = 0;
                 for(; session < 100; session++){
+                    printf("%s\n",listOfSessions[session].sessionID);
                     if(listOfSessions[session].sessionID == NULL) continue;
                     if(strcmp(listOfSessions[session].sessionID,receiveInfo) == 0) {
                         sessionFail = 0;
+                        printf("we found the matching session to join\n");
                         break;
                     }
                 }
@@ -241,19 +245,22 @@ void *clientHandler(void *args){
                     //fails
                     break;
                 }
-
+                session = 0;
                 for(; session < 100; session++){
+                    if(listOfSessions[session].sessionID == NULL) continue;
                     if(strcmp(listOfSessions[session].sessionID,listOfUsers[availableNum].sessionID) == 0) break;
                 }
+                printf("compares done\n");
                 listOfSessions[session].numClients--;
                 if(listOfSessions[session].numClients == 0){
+                    printf("deleteing session\n");
                     free(listOfSessions[session].sessionID);
                     listOfSessions[session].sessionID = NULL;
                 }
 
                 free(listOfUsers[availableNum].sessionID);
                 listOfUsers[availableNum].sessionID = NULL;
-                
+                printf("get to end of leave session\n");
 
             break;
             
@@ -269,9 +276,13 @@ void *clientHandler(void *args){
                 
                 receiveInfo = strtok(NULL,",");
 
-                
+                session = 0;
                 for(; session < 100; session++){
                     if(listOfSessions[session].sessionID == NULL) break;
+                }
+                for(int j = 0; j < 100; j++){
+                    printf("%s\n",listOfSessions[j].sessionID);
+                    if(listOfSessions[j].sessionID == NULL) continue;
                     if((strcmp(listOfSessions[session].sessionID,receiveInfo) == 0)) {//session ID already exists
                         sessionFail = 1;
                         break;
@@ -304,7 +315,11 @@ void *clientHandler(void *args){
             case MESSAGE:
                 //if we are in a session,
                 if(listOfUsers[availableNum].sessionID != NULL){
+                    receiveInfo = strtok(NULL, ",");
+
                     for(int i = 0; i < 100; i++){
+                        if(listOfUsers[i].sessionID == NULL) continue;
+                        if(i == availableNum) continue;
                         if(strcmp(listOfUsers[i].sessionID,listOfUsers[availableNum].sessionID) == 0){
                             //two clients in the same session
                                 int tempSock;
@@ -314,18 +329,20 @@ void *clientHandler(void *args){
                                 bzero(&serv_addr,sizeof(serv_addr));
 
                                 serv_addr.sin_family = AF_INET;
-                                serv_addr.sin_addr.s_addr = listOfUsers[availableNum].IP;
-                                serv_addr.sin_port = htons(listOfUsers[availableNum].PORT + 1);
+                                serv_addr.sin_addr.s_addr = inet_addr(listOfUsers[i].IP);
+                                serv_addr.sin_port = htons(listOfUsers[i].PORT + 1);
 
                                 if(connect(tempSock,(struct sockaddr *)&serv_addr,sizeof(serv_addr))){
                                     printf("failed to setup listening connection\n");
                                     // exit(0)
                                 }
-                                receiveInfo = strtok(NULL, ",");
-                                write(tempSock,receiveInfo,sizeof(receiveInfo));
+                                
+                                printf("writing tempSock: %d | with port: %d | %s\n",tempSock,listOfUsers[i].PORT + 1,receiveInfo);
+                                write(tempSock,receiveInfo,BUFFER_SZ);
                         }
                     }
                 }else printf("You are not in a session\n");
+                printf("exit message case\n");
             break;
             
             case QUERY:
@@ -333,7 +350,8 @@ void *clientHandler(void *args){
                 bzero(queryMsg,BUFFER_SZ);
                 for(int i = 0; i < 100; i++){
                     
-                    if(availalbeClientNums[i] == 0) continue; //available for use, we skip
+                    if(availableClientNums[i] == 0) continue; //available for use, we skip
+                    if(listOfUsers[i].clientID == NULL) continue;
                     strcat(queryMsg,listOfUsers[i].clientID);
                     strcat(queryMsg, " | ");
                     if(listOfUsers[i].sessionID == NULL) strcat(queryMsg, "N/A");
@@ -354,6 +372,7 @@ void *clientHandler(void *args){
 int main(int argc, char *argv[]){
     acceptedUsers[0].id = "name"; acceptedUsers[0].pwd = "pwd";
     acceptedUsers[1].id = "Bob"; acceptedUsers[1].pwd = "bob123";
+    acceptedUsers[2].id = "JJ"; acceptedUsers[2].pwd = "aloha";
 
     if(argc != 2){
         fprintf(stderr,"usage: server port needed\n");
@@ -394,7 +413,7 @@ int main(int argc, char *argv[]){
         printf("With port number: %d\n",portNum);
 
         struct threadArgs *args = malloc(sizeof(struct threadArgs)); 
-        for(int i = 0; i < 1024; i++) args->ip_address[i] = ip_address[i];
+        for(int j = 0; j < 1024; j++) args->ip_address[j] = ip_address[j];
         args->sockfd = connfd;
         args->portNum = portNum; 
 
