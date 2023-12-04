@@ -11,6 +11,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#include <signal.h>
+
 #include <assert.h>
 
 #include "database.h"
@@ -102,8 +104,20 @@ void *listeningThread(void *args){
     }
 }
 
+void interruptHandler(){
+    if(client->sockfd != -1) quit();
+    exit(0);
+}
+
 int main(){
     printf("Starting up Client...\n");
+    
+    struct sigaction event;
+    event.sa_handler = interruptHandler;
+    sigaction(SIGINT, &event, NULL);
+    sigaction(SIGSEGV, &event, NULL);
+    sigaction(SIGKILL, &event, NULL);
+    sigaction(SIGTERM, &event, NULL);
 
     char *inputSlice;
     
