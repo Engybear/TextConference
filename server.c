@@ -63,7 +63,7 @@ void *clientHandler(void *args){
         listOfUsers[availableNum].PORT = port;
 
         read(connfd,buff,sizeof(buff));
-        printf("%s\n",buff);
+        // printf("%s\n",buff);
 
         char *receiveInfo;
         receiveInfo = strtok(buff,","); //get packet type
@@ -85,10 +85,10 @@ void *clientHandler(void *args){
         }
         if(clientExists) {//reset available num to existing num location, to use already existing client number
             availableNum = existingNum; 
-            printf("client already exists!\n");
+            // printf("client already exists!\n");
         }
         else { //if it doesn't exist, use that available num location and treat as new client
-            printf("new client! %d\n",availableNum);
+            // printf("new client! %d\n",availableNum);
             availableClientNums[availableNum] = 1;
             
             listOfUsers[availableNum].clientID = malloc(strlen(receiveInfo) + 1);
@@ -101,11 +101,10 @@ void *clientHandler(void *args){
         int sessionFail = 0;
         int session = 0;
         char queryMsg[BUFFER_SZ];
-        printf("starting switch case\n");
         switch(packetType){
             case LOGIN:
                 //check password correct
-                printf("Logging in new user...\n");
+                printf("Logging in %s user...\n",listOfUsers[availableNum].IP);
                 
                 receiveInfo = strtok(NULL,","); //get pwd
                 listOfUsers[availableNum].pwd = malloc(strlen(receiveInfo) + 1);
@@ -120,7 +119,7 @@ void *clientHandler(void *args){
                 }
                 struct message * packet;
                 if(loginAccept == 1 && listOfUsers[availableNum].loggedIn == 0){
-                    printf("successful login!\n");
+                    printf("Successful login!\n");
                     //send LO_ACK
                     listOfUsers[availableNum].loggedIn = 1;
 
@@ -134,7 +133,6 @@ void *clientHandler(void *args){
 
                     char *packetSend = malloc(PACKET_SZ);
                     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-                    printf("printing packet to send: %s\n",packetSend);
     
                     write(connfd,packetSend, strlen(packetSend));
 
@@ -142,7 +140,7 @@ void *clientHandler(void *args){
                     // free(packetSend);       
                 }
                 else {
-                    printf("invalid login\n");
+                    printf("Invalid login\n");
 
                     struct message *packet = malloc(PACKET_SZ);
                     packet->type = LO_NAK;
@@ -155,7 +153,6 @@ void *clientHandler(void *args){
 
                     char *packetSend = malloc(PACKET_SZ);
                     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-                    printf("Packet sending: %s\n",packetSend);
 
                     write(connfd,packetSend, strlen(packetSend));
 
@@ -180,13 +177,10 @@ void *clientHandler(void *args){
                 //check for sessions to clean up
                 if(listOfUsers[availableNum].sessionID != NULL){
                     for(int i = 0; i<100; i++){
-                        printf("runs %d\n",i);
                         if(listOfSessions[i].sessionID == NULL) continue;
                         if(strcmp(listOfSessions[i].sessionID,listOfUsers[availableNum].sessionID) == 0){
                             listOfSessions[i].numClients--;
-                            printf("clients in help: %d",listOfSessions[i].numClients);
                             if(listOfSessions[i].numClients == 0){
-                                printf("session is freed??\n");
                                 free(listOfSessions[i].sessionID);
                                 listOfSessions[i].sessionID = NULL;
                             }
@@ -198,31 +192,26 @@ void *clientHandler(void *args){
                     free(listOfUsers[availableNum].sessionID);
                     listOfUsers[availableNum].sessionID = NULL;
                 }
-                printf("logout finished\n");
                 pthread_exit(0);
 
             break;
 
             case JOIN:
-                //join session id
-                //check if client is already in a session
-                //check if session id is valid 
-                printf("Joining session...\n");
                 
                 if(listOfUsers[availableNum].sessionID != NULL){
                     write(connfd, "6,Already in session,",21);
                     break; 
                 }
+                printf("Attempting to join session...\n");
+                
 
                 sessionFail = 1;
                 receiveInfo = strtok(NULL,",");
                 session = 0;
                 for(; session < 100; session++){
                     if(listOfSessions[session].sessionID == NULL) continue;
-                    printf("%s\n",listOfSessions[session].sessionID);
                     if(strcmp(listOfSessions[session].sessionID,receiveInfo) == 0) {
                         sessionFail = 0;
-                        printf("we found the matching session to join\n");
                         break;
                     }
                 }
@@ -232,12 +221,13 @@ void *clientHandler(void *args){
 
                     listOfSessions[session].numClients++;
                     
-                    printf("clients in help: %d",listOfSessions[session].numClients);
+                    printf("Succesful join\n");
                     write(connfd, "5,",3);
 
                     //setup listening thread
 
                 }else{
+                    printf("Invalid join\n");
                     write(connfd, "6,No session exists,",21);
                 }
 
@@ -245,42 +235,40 @@ void *clientHandler(void *args){
             break;
 
             case LEAVE_SESS:
-                printf("Leaving session...\n");
                 if(listOfUsers[availableNum].sessionID == NULL){
                     printf("You are not in a session\n");
                     //fails
                     break;
                 }
+                
+                printf("Leaving session...\n");
+
                 session = 0;
                 for(; session < 100; session++){
                     if(listOfSessions[session].sessionID == NULL) continue;
                     if(strcmp(listOfSessions[session].sessionID,listOfUsers[availableNum].sessionID) == 0) break;
                 }
-                printf("compares done\n");
                 listOfSessions[session].numClients--;
                 
-                printf("clients in help: %d",listOfSessions[session].numClients);
                 if(listOfSessions[session].numClients == 0){
-                    printf("deleteing session\n");
                     free(listOfSessions[session].sessionID);
                     listOfSessions[session].sessionID = NULL;
                 }
 
                 free(listOfUsers[availableNum].sessionID);
                 listOfUsers[availableNum].sessionID = NULL;
-                printf("get to end of leave session\n");
 
             break;
             
             case NEW_SESS:
                 //new sesssion
                 // for()
-                printf("Creating new session...\n");
                 
                 if(listOfUsers[availableNum].sessionID != NULL){
                     write(connfd, "-1,",4);
                     break; 
                 }
+                printf("Creating new session...\n");
                 
                 receiveInfo = strtok(NULL,",");
 
@@ -290,26 +278,22 @@ void *clientHandler(void *args){
                 }
                 for(int j = 0; j < 100; j++){
                     if(listOfSessions[j].sessionID == NULL) continue;
-                    printf("%s\n",listOfSessions[j].sessionID);
                     if((strcmp(listOfSessions[j].sessionID,receiveInfo) == 0)) {//session ID already exists
                         sessionFail = 1;
-                        printf("expect this to run\n");
                         break;
                     }
                 }
                 if(!sessionFail){ //session creation is good
-                    printf("session %d, availableNum %d\n",session, availableNum);
                 
                     listOfSessions[session].sessionID = malloc(strlen(receiveInfo) + 1);
                     strcpy(listOfSessions[session].sessionID, receiveInfo);
 
                     listOfSessions[session].numClients = 1;
                     
-                    printf("clients in help: %d",listOfSessions[session].numClients);
 
                     listOfUsers[availableNum].sessionID = malloc(strlen(receiveInfo) + 1);
                     strcpy(listOfUsers[availableNum].sessionID, receiveInfo);
-                    printf("creating new session writes out\n");
+                    printf("Successful creation of new session\n");
                     write(connfd, "9,",3);
 
                     //set up listening thread
@@ -317,7 +301,7 @@ void *clientHandler(void *args){
 
                 }
                 else{ //session creation fails
-                
+                    printf("Session creation fails\n");
                     write(connfd, "-1,",4);
 
                 }
@@ -348,12 +332,10 @@ void *clientHandler(void *args){
                                     // exit(0)
                                 }
                                 
-                                printf("writing tempSock: %d | with port: %d | %s\n",tempSock,listOfUsers[i].PORT + 1,receiveInfo);
                                 write(tempSock,receiveInfo,BUFFER_SZ);
                         }
                     }
                 }else printf("You are not in a session\n");
-                printf("exit message case\n");
             break;
             
             case QUERY:
@@ -369,7 +351,6 @@ void *clientHandler(void *args){
                     else strcat(queryMsg,listOfUsers[i].sessionID);
                     strcat(queryMsg, "\n");
                 }
-                printf("%s",queryMsg);
                 write(connfd, queryMsg, BUFFER_SZ);
             break;
             default:
@@ -414,7 +395,6 @@ int main(int argc, char *argv[]){
         socklen_t cli_len = sizeof(client);
         int connfd = accept(sockfd, (struct sockaddr*)&client, &cli_len);
         if(connfd < 0) printf("connfd failed\n");
-        printf("connect checks out\n");
         
         char ip_address[1024];
         inet_ntop(client.ss_family, &((struct sockaddr_in*)&client)->sin_addr, ip_address, sizeof(ip_address));

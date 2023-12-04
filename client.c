@@ -57,7 +57,7 @@ void text(char *inputSlice);
 const int clientInfoSZ = 2008;
 
 void *listeningThread(void *args){
-    printf("very top of thread listen\n");
+    
     int tempSock = -1;
     int optval = 1;
     
@@ -74,25 +74,20 @@ void *listeningThread(void *args){
     int rv = getaddrinfo(NULL, client->myPort, &hints, &addr);
     tempSock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 
-    printf("socket to bind to %d | port in use %s\n",tempSock,client->myPort);
-
     setsockopt(tempSock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval));
     if(bind(tempSock,addr->ai_addr,addr->ai_addrlen)){
         printf("failed to bind for listen\n");
         pthread_exit(0);
     }
-    printf("bind done\n");
 
     if(listen(tempSock,MAX_USERS) < 0){
         printf("failed to setup listen queue\n");
         pthread_exit(0);
     }
-    printf("listen done\n");
 
     struct sockaddr otherClient;
     socklen_t cli_len = sizeof(otherClient);
     while(1){
-        printf("starting accept\n");
         int connfd = accept(tempSock, (struct sockaddr*)&otherClient, &cli_len);
         if(connfd == -1){
             printf("failed to accept\n");
@@ -108,6 +103,7 @@ void *listeningThread(void *args){
 }
 
 int main(){
+    printf("Starting up Client...\n");
 
     char *inputSlice;
     
@@ -129,53 +125,48 @@ int main(){
         inputSlice = strtok(inputBuf," ");
 
         if(strcmp(inputSlice, "/login") == 0){
-            printf("login cmd\n");
+            // printf("login cmd\n");
             login(inputSlice);
 
         }else if(strcmp(inputSlice,"/logout") == 0){
-            printf("logout\n");
+            // printf("logout\n");
             logout();
             if(client->sockfd != -1) client->sockfd = -1;
             
         }else if(strcmp(inputSlice,"/joinsession") == 0){
-            printf("join\n");
+            // printf("join\n");
             joinSess(inputSlice);
             
         }else if(strcmp(inputSlice,"/leavesession") == 0){
-            printf("leave\n");
+            // printf("leave\n");
             leaveSess();
             
         }else if(strcmp(inputSlice,"/createsession") == 0){
-            printf("create\n");
+            // printf("create\n");
             createSess(inputSlice);
             
         }else if(strcmp(inputSlice,"/list") == 0){
-            printf("list\n");
+            // printf("list\n");
             list();
             
         }else if(strcmp(inputSlice,"/quit") == 0){
-            printf("quit\n");
+            // printf("quit\n");
             quit();
 
             break;
             
         }else{ //just text to send
             inputBuf[strlen(inputSlice)] = ' '; //restores buffer
-            printf("inputBuf restored: %s\n",inputBuf);
             text(inputBuf);
-        
-            //check if in server and in a session to send text
-            // printf("Invalid command or text to send\n");
         }
     }
-    printf("program quiting\n");
+    printf("Client Quiting\n");
     free(client);
     exit(0);
 }
 
 
 void login(char *inputSlice){
-    
     if(client->sockfd != -1){
         printf("Already connected to a server\n");
         return; //already connected
@@ -185,13 +176,12 @@ void login(char *inputSlice){
         printf("socket creation failed\n");
         exit(0);
     }
+    printf("Attempting to login...\n");
     
     //put client into database for the server
-
     char *ID, *pwd, *serverIP, *serverPort;
     inputSlice = strtok(NULL, " ");
-    ID = strdup(inputSlice);
-    // save id into global variable
+    ID = strdup(inputSlice); // save id into global variable
     client->clientID = ID;
     inputSlice = strtok(NULL, " ");
     pwd = inputSlice;
@@ -224,8 +214,6 @@ void login(char *inputSlice){
     //compile packet into a buffer to send
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-
-    printf("Packet to send: %s\n",packetSend);
     
     write(client->sockfd,packetSend, strlen(packetSend));
 
@@ -245,7 +233,7 @@ void login(char *inputSlice){
         inputSlice = strtok(NULL, ",");
         client->myPort = malloc(strlen(inputSlice) + 1);
         strcpy(client->myPort,inputSlice);
-        printf("port received from server: %s\n",inputSlice);
+        printf("Client Port: %s\n",inputSlice);
 
     }
 
@@ -277,12 +265,11 @@ void joinSess(char *inputSlice){
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
 
     // send request to join session to server
     write(client->sockfd,packetSend, strlen(packetSend));
 
-    // printf("Creating new session...\n");
+    printf("Joining new session...\n");
 
     // wait for ACK / NACK
     read(client->sockfd, buff, sizeof(buff));
@@ -307,6 +294,9 @@ void createSess(char *inputSlice){
         printf("Not connected to a server\n");
         return; //already connected
     } 
+
+    printf("Attempting to create a new session...\n");
+
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     // extract the session ID from the user (doesnt have to be a number)
@@ -324,7 +314,6 @@ void createSess(char *inputSlice){
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
     
     // send request to create the session to the server
     write(client->sockfd,packetSend, strlen(packetSend));
@@ -351,6 +340,7 @@ void leaveSess(){
         printf("Not connected to a server\n");
         return; //already connected
     } 
+
     char buff[BUFFER_SZ];
     bzero(buff, sizeof(buff));
     struct message *packet = malloc(PACKET_SZ);
@@ -362,7 +352,6 @@ void leaveSess(){
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
 
     // send request to create the session to the server
     write(client->sockfd,packetSend, strlen(packetSend));
@@ -389,7 +378,6 @@ void list(){
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
 
     // send request to create the session to the server
     write(client->sockfd,packetSend, strlen(packetSend));
@@ -422,15 +410,12 @@ void logout(){
     // send message as one contiguous string
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
-    printf("printing packet to send: %s\n",packetSend);
-
+    
     // send quit request
     write(client->sockfd,packetSend, strlen(packetSend));
 
     client->inSession = 0;
-    // wait for ack?
-    // read(client->sockfd, buff, sizeof(buff));
-    // parse the buffer message from the server
+    printf("Logged out successfully\n");
     return;
 }
 
@@ -457,19 +442,8 @@ void text(char *messageData){
     char *packetSend = malloc(PACKET_SZ);
     sprintf(packetSend, "%d,%d,%s,%s",packet->type, packet->size, packet->source, packet->data);
 
-    printf("Packet to send: %s\n",packetSend);
-
     // send request to create the session to the server
     write(client->sockfd, packetSend, strlen(packetSend));
     
-    // wait for ACK/NACK
-    // read(client->sockfd, buff, sizeof(buff));
-    // messageData = strtok(buff, ",");
-    // if(atoi(messageData) == QU_ACK){
-    //     printf("Message was recieved successfully\n");
-    // }
-    // else{
-    //     printf("Message was not recieved\n");
-    // }
     return;
 }
